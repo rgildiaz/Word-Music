@@ -7,7 +7,7 @@ class gutenburg():
             'Frank': 'https://www.gutenberg.org/cache/epub/35062/pg35062.txt'
         }
         self.text = self.load_text(book)
-        print('text loaded')
+        print('\ntext loaded\n')
 
     def get_url(self, book):
         try:
@@ -18,20 +18,6 @@ class gutenburg():
             return None
 
     def get_remote_text(self, url):
-        # try:
-        #     with urllib.request.urlopen(url) as response:
-        #         if response.getcode() == 200:
-        #             data = response.read()
-        #             output = data.decode('utf-8')
-        #             return output
-        #         else:
-        #             print('Response Code: {}'.format(response.getcode()))
-        # except urllib.error.HTTPError as e:
-        #     print('HTTPError: {}'.format(e.code))
-        #     return None
-        # except urllib.error.URLError as e:
-        #     print('URLError: {}'.format(e.reason))
-        #     return None
         with req.urlopen(url) as response:
             data = response.read()
             output = data.decode('utf-8')
@@ -44,6 +30,16 @@ class gutenburg():
     def get_text(self):
         return self.text
 
+    def write_to_file(self):
+        with open('alg_out/gutOut.txt', 'w') as fd:
+            for i in self.text:
+                try:
+                    fd.write(i)
+                except:
+                    fd.write("EXCEPTION")
+
 if __name__ == '__main__':
     x = gutenburg('Frank')
+    print(x.get_text())
+
     
