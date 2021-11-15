@@ -2,6 +2,7 @@ from gutenburg import *
 from alg import Alg
 from pythonosc import *
 import re
+import math
 
 '''
 Alg0:
@@ -66,8 +67,8 @@ keywords = {
 }
 
 letters = list('abcdefghijklmnopqrstuvwxyz')
-numbers = list('1234567890')
-
+numbers = list('0123456789')
+mappings = numbers + letters
 
 
 class Alg0(Alg):
@@ -75,7 +76,7 @@ class Alg0(Alg):
         super().__init__(input)
         self.keywords = keywords
         self.output = ''
-        # self.pipeline()
+        self.pipeline()
     
     def pipeline(self):
         self.is_string()
@@ -99,10 +100,12 @@ class Alg0(Alg):
         replaced = text.replace('\n', ' ')
         lower = replaced.lower()
         out = [i.strip() for i in lower.split(' ')]
+        out = [i for i in out if i != '']
         return out
 
     def process(self):
         tokens = self.tokenize_and_clean(self.input)
+        print(tokens[:100])
         for i, token in enumerate(tokens):
             if token in keywords['KEY'] or \
                 token in keywords['TEMPO']:
@@ -117,11 +120,14 @@ class Alg0(Alg):
     '''
     def control(self, ctrl, modifier):
         out = '0'
+
         if ctrl in keywords['TEMPO']:
-            out += 0
+            out += '0'
         elif ctrl in keywords['KEY']:
-            out += 1
-        
+            out += '1'
+
+        out += mappings[modifier % len(mappings)]
+
         return out
     
     '''
@@ -131,40 +137,51 @@ class Alg0(Alg):
     def note(self, note):
         out = '1'
 
+        # check for Rest
+        for i in note:
+            if i not in mappings:
+                return out + '00000'
+
         # generally unpitched, coded as 1 or 2
         if note[0] in letters:
-            pass
+            if note[0] in letters[math.floor(len(letters)/2)]:
+                out += '1'
+            else:
+                out += '2'
         # generally pitched, coded as 3 or 4
         elif note[0] in numbers:
-            if note[0] in numbers[:5]:
+            if note[0] in numbers[math.floor(len(numbers)/2)]:
                 out += '3'
             else:
                 out += '4'
-        # must be Rest event: coded as 0
         else:
-            out += '0'
+            raise AssertionError(f'{note[0]} in {note} is not a valid char.')
         
         # if note is at least 2 char long, read its vel
         if len(note) >= 2:
-            pass
+            out += note[1]
         else:
-            out += 'f'
+            out += 'h'
         
         # if note is at least 3 char long, read its reverb
         if len(note) >= 3:
-            pass
+            out += note[2]
         else:
-            out += 'f'
+            out += 'h'
 
         # if note is at least 4 char long, read its pitch
         if len(note) >= 4:
-            pass
+            out += note[3]
         else:
-            out += 'f'
+            out += 'h'
 
         # if note is at least 5 char long, count repeats
         if len(note) >= 5:
-            pass
+            # hard cap at len 36
+            if len(note) >= 36:
+                out += 'z'
+            else:
+                out += mappings[len(note) - 4]
         else:
             out += '0'
 
@@ -172,10 +189,6 @@ class Alg0(Alg):
 
 # debug
 if __name__ == "__main__":
-    # g = gutenburg('Frank')
-    # x = Alg0(g.get_text())
-    # print(x)
-
-    print(Alg0("this in input").note('1'))
-    print(letters)
-    print(numbers)
+    g = gutenburg('Frank')
+    x = Alg0(g.get_text())
+    print(x)
