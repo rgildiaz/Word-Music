@@ -112,6 +112,7 @@ class Alg0(Alg):
                 self.output += ' ' + self.control(token, i)
             else:
                 self.output += ' ' + self.note(token)
+        self.output = self.output.strip()
 
     '''
     Process a control event and write it to self.output.
