@@ -127,6 +127,7 @@ class Alg0(Alg):
         elif ctrl in keywords['KEY']:
             out += '1'
 
+        # 100 possible values, wraps at 100.
         out += f"{modifier%100:02}"
 
         return out
@@ -178,13 +179,10 @@ class Alg0(Alg):
 
         # if note is at least 5 char long, count repeats
         if len(note) >= 5:
-            # hard cap at len 100
-            if len(note) >= 100:
-                out += '99'
-            else:
-                out += f"{len(note)%100:02}"
+            # note of len 5 will play twice. Wraps at 100
+            out += f"{(len(note)-3)%100:02}"
         else:
-            out += '00'
+            out += '01'
 
         return out
 
