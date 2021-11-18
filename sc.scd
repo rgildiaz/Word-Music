@@ -6,7 +6,7 @@
 					/////////////////////////
 
 (
-t = TempoClock.new(180);
+t = TempoClock.new(180/60).permanent_(true);
 
 ~scale = Scale.lydian;
 
@@ -134,12 +134,12 @@ SynthDef.new(\tone, {
 // Check if path to file is correct
 if(
 	File.exists(~in),
-	{ x = FileReader.read(~in); },
+	{ x = FileReader.read(~in).flatten; },
 	{ Error("File % could not be opened.".format(~in)).throw; }
 );
 
 // Clean empty strings (if any got left in by accident)
-c = x[0].collect({
+c = x.collect({
 	|i|
 	if(
 		i.size >= 2,
@@ -156,16 +156,16 @@ c.postln;
 /*
 Parsing Structure:
 Encoding
-    Text is sent to SuperCollider through a space-separated .txt file. Tokens can be either control changes or note events Each token is created as follows:
+    Text is sent to SuperCollider through a space-separated .txt file. Tokens can be either control changes or note events. Each token is created as follows:
 
             Example:
                 Control:
-                     0         0           0
+                     0         0           00
                      ^         ^           ^
                     type  control type   value
 
                 Note:
-                     1         0           0           0           0           0
+                     1         0           00          00          00          00
                      ^         ^           ^           ^           ^           ^
                     type    quality     velocity     reverb      pitch      repeats
 
@@ -176,7 +176,7 @@ Encoding
         Control
             control type    0: Tempo
                             1: Key
-            value           range(0,z) (36 possible values)
+            value           range(0,99)
 
         Note
             quality         0: Rest
@@ -184,9 +184,9 @@ Encoding
                             2: Long Perc
                             3: Short Pitch
                             4: Long Pitch
-            velocity        range(0,z) (36 possible values)
-            reverb          range(0,z) (36 possible values)
-			pitch           range(0,z) (36 possible values)
+            velocity        range(0,99)
+            reverb          range(0,99)
+            pitch           range(0,99)
 */
 
 (
@@ -209,6 +209,32 @@ Encoding
 	{ Error("Control: Unexpected 2nd character: % in %".format(i[1], i)).throw; }
 };
 
+~key = {
+	// ~scale = Scale.modename
+	// change Pdefn
+	Pdefn(\scale, ~scale);
+}
+
+
+~tempo = {
+	// make another routine
+	|i|
+	var temp, val, minTempo, maxTempo;
+
+	minTempo = 160;
+	maxTempo = 200;
+	temp = t.tempo;
+	val = i.linlin(0, 99, minTempo, maxTempo);
+
+	// Should overwrite if two tempo changes in a row since this is named
+	~tempoChange = Routine.new(
+		Array.interpolation(12, temp, val).do({
+			|i|
+			i = i/60;
+			t.tempo_(i).postln;
+		})
+	).play(t);
+}
 ~rest = {
 	nil;
 };
@@ -216,13 +242,16 @@ Encoding
 ~percShort = {
 	|i|
 	"percShortcalled".postln;
-	~deg = rrand(0, 6);
-	~repeats = i[5].asInt;
-	Pbindef(\percShort,
+	Synth(\tone);
+	var deg, repeats;
+	deg = rrand(0, 6);
+	repeats = i[5].asInt;
+	Pbind(
 		\instrument, \tone,
-		\scale, ~scale,
-		\degree, ~deg - 16,
-	).play;
+		\scale, Pdefn(\scale, ~scale),
+		\degree, deg - 16,
+		\dur, Pseq([1], repeats);
+	).play(t);
 };
 
 r = Routine({
@@ -232,9 +261,9 @@ r = Routine({
 		{ i[0].asString == "1" }		{ ~note.value(i) }
 		{ i[0].asString == "0" }		{ ~ctrl.value(i) }
 		{ Error("Unexpected 1st character: % in %".format(i[0], i)).throw; };
-		(1/6).yield;
+		1.yield;
 	})
-}).play;
+}).play(t);
 )
 
 					/////////////////////////
@@ -243,7 +272,7 @@ r = Routine({
 // Bell
 ({
 	var sig, mod, am, hit, high,
-	env, modenv, amenv, hitenv, highenv, dampenv,
+	env, modenv, amenv, hitenv, highenv, dampenv, dampenv1,
 	rel, freq, amp;
 
 	freq = rrand(299,301);
@@ -271,8 +300,11 @@ r = Routine({
 	dampenv = EnvGen.ar(Env.new(
 		[15000, 30],
 		[rel+0.25],
-		1
+		-2
 	)
+	);
+	dampenv1 = EnvGen.ar(
+		Env.perc(0.0001, rel)
 	);
 
 	hit = RLPF.ar(
@@ -300,13 +332,13 @@ r = Routine({
 		mul: rrand(0.4, 0.6))
 	* amenv;
 
-	mod = SinOsc.ar(freq, mul: rrand(0.4, 0.6)) + SinOsc.ar(freq*rrand(1.77, 1.82),
-		mul: rrand(0.4, 0.6)) * modenv;
+	mod = SinOsc.ar(freq, mul: rrand(0.45, 0.5)) + SinOsc.ar(freq*rrand(1.77, 1.82),
+		mul: rrand(0.45, 0.5)) * modenv;
 
 	sig = SinOsc.ar(
 		[
-			freq + rrand(1000, 2000),
-			(freq - rrand(1000, 2000)).clip(50, 20000),
+			freq + rrand(1500, 1600),
+			(freq - rrand(1500, 1600)).clip(50, 20000),
 			freq
 		] * mod * 1/3,
 		add: ((am * 0.5) + 0.5)
@@ -317,7 +349,8 @@ r = Routine({
 	sig = sig + hit + high;
 	sig = sig * env * amp;
 	sig = LPF.ar(sig, (freq * rrand(18, 22)));
-	sig = LPF.ar(sig, dampenv);
+	// sig = LPF.ar(sig, dampenv);
+	sig = sig * dampenv1;
 	sig = HPF.ar(sig, freq);
 	sig = Mix.ar(sig);
 	Pan2.ar(sig, rrand(-0.2, 0.2));
@@ -377,4 +410,5 @@ Pbind(
 
 
 
-
+x = "1234567890";
+"".catList(x[(0..1)]).class;
