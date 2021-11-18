@@ -27,16 +27,16 @@ Words
     Symbols appearing anywhere in a word make that word a Rest() event instead.
 
 Encoding
-    Text is sent to SuperCollider through a space-separated .txt file. Tokens can be either control changes or note events Each token is created as follows:
+    Text is sent to SuperCollider through a space-separated .txt file. Tokens can be either control changes or note events. Each token is created as follows:
 
             Example:
                 Control:
-                     0         0           0
+                     0         0           00
                      ^         ^           ^
                     type  control type   value
 
                 Note:
-                     1         0           0           0           0           0
+                     1         0           00          00          00          00
                      ^         ^           ^           ^           ^           ^
                     type    quality     velocity     reverb      pitch      repeats
                     
@@ -47,7 +47,7 @@ Encoding
         Control
             control type    0: Tempo
                             1: Key
-            value           range(0,z) (36 possible values)
+            value           range(0,99)
 
         Note
             quality         0: Rest
@@ -55,9 +55,9 @@ Encoding
                             2: Long Perc
                             3: Short Pitch
                             4: Long Pitch
-            velocity        range(0,z) (36 possible values)
-            reverb          range(0,z) (36 possible values)
-            pitch           range()
+            velocity        range(0,99)
+            reverb          range(0,99)
+            pitch           range(0,99)
 '''
 
 
@@ -127,7 +127,7 @@ class Alg0(Alg):
         elif ctrl in keywords['KEY']:
             out += '1'
 
-        out += mappings[modifier % len(mappings)]
+        out += f"{modifier%100:02}"
 
         return out
     
@@ -141,7 +141,7 @@ class Alg0(Alg):
         # check for Rest
         for i in note:
             if i not in mappings:
-                return out + '00000'
+                return out + '0'*9
 
         # generally unpitched, coded as 1 or 2
         if note[0] in letters:
@@ -160,31 +160,31 @@ class Alg0(Alg):
         
         # if note is at least 2 char long, read its vel
         if len(note) >= 2:
-            out += note[1]
+            out += f"{mappings.index(note[1])%100:02}"
         else:
-            out += 'h'
+            out += '50'
         
         # if note is at least 3 char long, read its reverb
         if len(note) >= 3:
-            out += note[2]
+            out += f"{mappings.index(note[2])%100:02}"
         else:
-            out += 'h'
+            out += '50'
 
         # if note is at least 4 char long, read its pitch
         if len(note) >= 4:
-            out += note[3]
+            out += f"{mappings.index(note[3])%100:02}"
         else:
-            out += 'h'
+            out += '50'
 
         # if note is at least 5 char long, count repeats
         if len(note) >= 5:
-            # hard cap at len 36
-            if len(note) >= 36:
-                out += 'z'
+            # hard cap at len 100
+            if len(note) >= 100:
+                out += '99'
             else:
-                out += mappings[len(note) - 4]
+                out += f"{len(note)%100:02}"
         else:
-            out += '0'
+            out += '00'
 
         return out
 
