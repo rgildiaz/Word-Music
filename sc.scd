@@ -1,154 +1,174 @@
-// Word Sound Music
+(
+s.quit;
+s.waitForBoot({
+					/////////////////////////
+					// Load the input file //
+					/////////////////////////
 
+	~path = PathName(thisProcess.nowExecutingPath).parentPath;
+	~in = ~path ++ "alg_out/out.txt";
+	~in.postln;
+
+	// Check if path to file is correct
+	if(
+		File.exists(~in),
+		// for some reason, FileReader returns a nested array. .flatten removes the outer layer.
+		{ x = FileReader.read(~in).flatten; },
+		{ Error("File % could not be opened.".format(~in)).throw; }
+	);
+
+	// Clean empty strings (if any were left in by accident)
+	c = x.collect({
+		|i|
+		if(
+			i.size >= 2,
+			{i}
+		)
+	});
+	// c = ["0099", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307"];
+	c.postln;
+	// c = Array.fill(1, c[2]);
+	"File loaded!".postln;
 
 					/////////////////////////
 					//        Setup        //
 					/////////////////////////
 
-(
-t = TempoClock.new(180/60).permanent_(true);
+	t = TempoClock.new(240/60).permanent_(true);
+	~scale = Scale.dorian;
 
-~scale = Scale.lydian;
+	// Buses
+	s.newBusAllocators;
+	~revBus = Bus.new('audio', numChannels:2);
 
-SynthDef.new( \perc, {
-	arg out=0, amp=0.2, rev=0.5,
-	atk=0.01, rel=1;
-	var sig, env;
-	sig;
-}).add;
+	// SynthDefs
+	SynthDef.new( \tone2, {
+		arg freq=200, amp=0.5, out=0, rel=0.25, pan=0;
+		var sig, mod, env, modenv;
+		env = EnvGen.ar(Env.perc(0.01, rel), doneAction: 2);
+		modenv = EnvGen.ar(Env.perc(0.001, rel));
+		sig = LPF.ar(
+			SinOsc.ar(freq, mul: 0.7) +
+			LPF.ar(WhiteNoise.ar(0.3), 1000*XLine.ar(1, 0.001, 0.1), modenv) +
+			SinOsc.ar(freq/2, mul:0.2),
+			1000
+		);
+		sig = Pan2.ar(sig*amp*env, pan);
+		Out.ar(out, sig);
+	}).add;
 
-SynthDef.new( \pitch, {
-	arg out=0, amp=0.2, rev=0.5,
-	atk=0.01, rel=1;
-	var sig, env;
-}).add;
+	// scrap this
+	SynthDef.new( \bell, {
+		arg freq=300, amp=0.8, rel=0.25;
+		var sig, mod, am, hit, high,
+		env, modenv, amenv, hitenv, highenv, dampenv;
 
-SynthDef.new( \bell, {
-	arg out=0, pan=0, freq=300, amp=0.8, rel=0.25;
-	var sig, mod, am, hit, high, dampenv,
-	env, modenv, amenv, hitenv, highenv;
+		amp = amp * rrand(0.48, 0.5);
 
-	amp = amp * rrand(0.45, 0.55);
+		modenv = EnvGen.ar(
+			Env.perc(0.01, rrand(rel+5, rel+25))
+		);
+		env = EnvGen.ar(Env.new(
+			[0.005, 1, 0.6, 0.0001],
+			[0.002, 0.075, rrand(7,9)],
+			'exp'
+		), doneAction: 2
+		);
+		amenv = EnvGen.ar(
+			Env.perc(0.005, rrand(rel+5, rel+25))
+		);
+		hitenv = EnvGen.ar(
+			Env.perc(0.05, 0.2)
+		);
+		highenv = EnvGen.ar(
+			Env.perc(0.005, rrand(rel+5, rel+25))
+		);
 
-	modenv = EnvGen.ar(
-		Env.perc(0.01, rrand(rel+5, rel+25))
-	);
-	env = EnvGen.ar(Env.new(
-		[0.005, 1, 0.6, 0.0001],
-		[0.002, 0.075, rrand(7,9)],
-		'exp'
-	), doneAction: 2
-	);
-	amenv = EnvGen.ar(
-		Env.perc(0.005, rrand(rel+5, rel+25))
-	);
-	hitenv = EnvGen.ar(
-		Env.perc(0.05, 0.2)
-	);
-	highenv = EnvGen.ar(
-		Env.perc(0.005, rrand(rel+5, rel+25))
-	);
-	dampenv = EnvGen.ar(Env.new(
-		[15000, 30],
-		[rel+0.25],
-		1
-	)
-	);
+		dampenv = EnvGen.ar(
+			Env.perc(0.0001, rel)
+		);
 
-	hit = RLPF.ar(
-		SinOsc.ar(
-			XLine.ar(freq*4, freq, 0.05)
-			*SinOsc.ar(freq*0.92, mul:0.5)
-			*SinOsc.ar(freq*0.98, mul:0.5),
-			mul: amp/4,
-			add: SinOsc.ar(freq, mul:0.5) + 0.5),
-		XLine.ar(freq*2, freq, 0.05), 1/2)
-	* hitenv;
+		hit = RLPF.ar(
+			SinOsc.ar(
+				XLine.ar(freq*4, freq, 0.05)
+				*SinOsc.ar(freq*0.92, mul:0.5)
+				*SinOsc.ar(freq*0.98, mul:0.5),
+				mul: amp/4,
+				add: SinOsc.ar(freq, mul:0.5) + 0.5),
+			XLine.ar(freq*2, freq, 0.05), 1/2)
+		* hitenv;
 
-	high = Mix.ar(
-		SinOsc.ar(
-		[
-			freq*rrand(1.5, 2)*SinOsc.ar(freq*rrand(1.5, 2)),
-			freq*rrand(1.5,2),
-			freq*rrand(2.1, 2.5)*SinOsc.ar(freq*rrand(2.2, 2.5))
-	],
-		mul:rrand(amp/8, amp/15)))
-	* highenv;
+		high = Mix.ar(
+			SinOsc.ar(
+				[
+					freq*rrand(1.5, 2)*SinOsc.ar(freq*rrand(1.5, 2)),
+					freq*rrand(1.5,2),
+					freq*rrand(2.1, 2.5)*SinOsc.ar(freq*rrand(2.2, 2.5))
+				],
+				mul:rrand(amp/8, amp/15)))
+		* highenv;
 
-	am = SinOsc.ar(
-		freq * rrand(0.9, 1.1),
-		mul: rrand(0.4, 0.6))
-	* amenv;
+		am = SinOsc.ar(
+			freq * rrand(0.9, 1.1),
+			mul: rrand(0.4, 0.6))
+		* amenv;
 
-	mod = SinOsc.ar(freq, mul: rrand(0.4, 0.6)) + SinOsc.ar(freq*rrand(1.77, 1.82),
-		mul: rrand(0.4, 0.6)) * modenv;
+		mod = SinOsc.ar(freq, mul: rrand(0.45, 0.5)) + SinOsc.ar(freq*rrand(1.77, 1.82),
+			mul: rrand(0.45, 0.5)) * modenv;
 
-	sig = SinOsc.ar(
-		[
-			freq + rrand(1000, 2000),
-			(freq - rrand(1000, 2000)).clip(50, 20000),
-			freq
-		] * mod * 1/3,
-		add: ((am * 0.5) + 0.5)
-		* (SinOsc.ar(LFNoise1.ar(rrand(1,2)).range(1.5, 2),
-			mul:0.2
-		) + 0.2)
-	);
-	sig = sig + hit + high;
-	sig = sig * env * amp;
-	sig = LPF.ar(sig, (freq * rrand(18, 22)));
-	sig = LPF.ar(sig, dampenv);
-	sig = HPF.ar(sig, freq);
-	sig = Mix.ar(sig);
-	Pan2.ar(sig, rrand(-0.2, 0.2));
-	Out.ar(out, sig);
-}).add;
+		sig = SinOsc.ar(
+			[
+				freq + rrand(1500, 1600),
+				(freq - rrand(1500, 1600)).clip(50, 20000),
+				freq
+			] * mod * 1/3,
+			add: ((am * 0.5) + 0.5)
+			* (SinOsc.ar(LFNoise1.ar(rrand(1,2)).range(1.5, 2),
+				mul:0.2
+			) + 0.2)
+		);
+		sig = sig + hit + high;
+		sig = sig * env * amp;
+		sig = LPF.ar(sig, (freq * rrand(18, 22)));
+		sig = sig * dampenv;
+		sig = HPF.ar(sig, freq);
+		sig = Mix.ar(sig);
+		sig = Pan2.ar(sig, rrand(-0.2, 0.2));
+		Out.ar(0, sig);
+	}).add;
 
-SynthDef.new(\tone, {
-	arg freq=200, rel=0.1;
-	var sig, mod, env, modenv, amp;
-	amp = 1;
-	env = EnvGen.ar(Env.perc(0.01, rel), doneAction: 2);
-	modenv = EnvGen.ar(Env.perc(0.001, rel));
-	mod = Saw.ar(freq, mul: modenv);
-	// freq = freq*mod;
-	sig = LPF.ar(
-		SinOsc.ar(freq, mul: 0.7) +
-		LPF.ar(WhiteNoise.ar(0.3), 1000*XLine.ar(1, 0.001, 0.1), modenv) +
-		SinOsc.ar(freq/2, mul:0.2),
-		1000
-	).tanh;
-	sig = Pan2.ar(sig*amp*env, 0);
-	Out.ar(0, sig);
-}).add;
-)
+	SynthDef.new(\tone, {
+		arg freq=200, rel=0.1, amp=0.8, pan=0, out=0;
+		var sig, mod, env, modenv;
+		env = EnvGen.ar(Env.perc(0.01, rel), doneAction: 2);
+		modenv = EnvGen.ar(Env.perc(0.001, rel));
+		mod = Saw.ar(freq, mul: modenv);
+		freq = freq*mod;
+		sig = LPF.ar(
+			SinOsc.ar(freq, mul: 0.7) +
+			LPF.ar(WhiteNoise.ar(0.3), 1000*XLine.ar(1, 0.001, 0.1), modenv) +
+			SinOsc.ar(freq/2, mul:0.2),
+			1000
+		).tanh;
+		sig = Pan2.ar(sig*amp*env, pan);
+		Out.ar(out, sig);
+	}).add;
 
-					/////////////////////////
-					// Load the input file //
-					/////////////////////////
-(
-~path = PathName(thisProcess.nowExecutingPath).parentPath;
-~in = ~path ++ "alg_out/out.txt";
-~in.postln;
+	SynthDef.new(\reverb, {
+		arg in=~revBus, out=0, amount=0.6;
+		var sig;
+		sig = In.ar(in, 2);
+		sig = FreeVerb.ar(sig, amount, 0.75, 0.3);
+		sig = Compander.ar(sig, sig, 0.2, 1, 0.1, 0.01, 0.01);
+		// sig = Limiter.ar(sig);
+		Out.ar(out, sig);
+	}).add;
 
-// Check if path to file is correct
-if(
-	File.exists(~in),
-	{ x = FileReader.read(~in).flatten; },
-	{ Error("File % could not be opened.".format(~in)).throw; }
-);
+	// Sync server
+	s.sync();
 
-// Clean empty strings (if any got left in by accident)
-c = x.collect({
-	|i|
-	if(
-		i.size >= 2,
-		{i}
-	)
-});
-c.postln;
-"File loaded!".postln;
-)
+	// Synth.new(\reverb, target: s.defaultGroup, addAction: \addAfter);
+
 
 					/////////////////////////
 					//    Parse + Output   //
@@ -189,176 +209,121 @@ Encoding
             pitch           range(0,99)
 */
 
-(
-~note = {
-	|i|
-	case
-	{ i[1].asString == "0" }			{ ~rest.value(i)      }
-	{ i[1].asString == "1" }			{ ~percShort.value(i) }
-	{ i[1].asString == "2" }			{ ~percShort.value(i) }
-	{ i[1].asString == "3" }			{ ~percShort.value(i) }
-	{ i[1].asString == "4" }			{ ~percShort.value(i) }
-	{ Error("Note: Unexpected 2nd character: % in %".format(i[1], i)).throw; }
-};
 
-~ctrl = {
-	|i|
-	case
-	{ i[1].asString == "0" }			{ ~tempo.value(i) }
-	{ i[1].asString == "1" }			{ ~key.value(i)   }
-	{ Error("Control: Unexpected 2nd character: % in %".format(i[1], i)).throw; }
-};
-
-~key = {
-	// ~scale = Scale.modename
-	// change Pdefn
-	Pdefn(\scale, ~scale);
-}
-
-
-~tempo = {
-	// make another routine
-	|i|
-	var temp, val, minTempo, maxTempo;
-
-	minTempo = 160;
-	maxTempo = 200;
-	temp = t.tempo;
-	val = i.linlin(0, 99, minTempo, maxTempo);
-
-	// Should overwrite if two tempo changes in a row since this is named
-	~tempoChange = Routine.new(
-		Array.interpolation(12, temp, val).do({
-			|i|
-			i = i/60;
-			t.tempo_(i).postln;
-		})
-	).play(t);
-}
-~rest = {
-	nil;
-};
-
-~percShort = {
-	|i|
-	"percShortcalled".postln;
-	Synth(\tone);
-	var deg, repeats;
-	deg = rrand(0, 6);
-	repeats = i[5].asInt;
-	Pbind(
-		\instrument, \tone,
-		\scale, Pdefn(\scale, ~scale),
-		\degree, deg - 16,
-		\dur, Pseq([1], repeats);
-	).play(t);
-};
-
-r = Routine({
-	c.do({
+	~note = {
 		|i|
 		case
-		{ i[0].asString == "1" }		{ ~note.value(i) }
-		{ i[0].asString == "0" }		{ ~ctrl.value(i) }
-		{ Error("Unexpected 1st character: % in %".format(i[0], i)).throw; };
-		1.yield;
-	})
-}).play(t);
+		{ i[1].asString == "0" }			{ ~rest.value(i)      }
+		{ i[1].asString == "1" }			{ ~percShort.value(i) }
+		{ i[1].asString == "2" }			{ ~percShort.value(i) }
+		{ i[1].asString == "3" }			{ ~percShort.value(i) }
+		{ i[1].asString == "4" }			{ ~pitchLong.value(i) }
+		{ Error("Note: Unexpected 2nd character: % in %".format(i[1], i)).throw; }
+	};
+
+	~ctrl = {
+		|i|
+		case
+		{ i[1].asString == "0" }			{ ~tempo.value(i) }
+		{ i[1].asString == "1" }			{ ~key.value(i)   }
+		{ Error("Control: Unexpected 2nd character: % in %".format(i[1], i)).throw; }
+	};
+
+	// Control funcs
+
+	~key = {
+		// ~scale = Scale.modename
+		// change Pdefn
+		Pdefn(\scale, ~scale);
+	};
+
+
+	~tempo = {
+		// make another routine
+		|i|
+		var temp, val, minTempo, maxTempo;
+
+		minTempo = 160/60;
+		maxTempo = 300/60;
+		temp = t.tempo;
+		val = "".catList(i[(2..3)]).asInteger.linlin(0, 99, minTempo, maxTempo);
+
+		// Should overwrite if two tempo changes in a row since this is named
+		~tempoChange = Routine.new({
+			Array.interpolation(12, temp, val).do({
+				|i|
+				t.tempo_(i).postln;
+				3.yield;
+		})}
+		).play(t);
+		Array.interpolation(12, temp, val).postln;
+	};
+
+	// Note funcs
+
+	~rest = {
+		nil;
+	};
+
+	~percShort = {
+		|i|
+		var deg, repeats, pan;
+		i.postln;
+		deg = rrand(0, 7);
+		// .asInteger cannot handle chars.
+		repeats = "".catList(i[(8..9)]).asInteger;
+		repeats.postln;
+		pan = rrand(-1.0, 1.0);
+		Pbind(
+			\instrument, \tone2,
+			\scale, Pdefn(\scale, ~scale),
+			\degree, deg,
+			\amp, Pgeom(Pwhite(0.2, 0.3), 0.5),
+			\rel, 0.1,
+			\dur, Pseq([2], repeats),
+			\pan, pan,
+			// \out, ~revBus,
+		).play(t);
+	};
+
+	~pitchLong = {
+		|i|
+		var deg, repeats, pan;
+		i.postln;
+		deg = [0, 4].choose;
+		// .asInteger cannot handle chars.
+		repeats = "".catList(i[(8..9)]).asInteger;
+		repeats.postln;
+		pan = rrand(-1.0, 1.0);
+		Pbind(
+			\instrument, \bell,
+			\scale, Pdefn(\scale, ~scale),
+			\degree, deg,
+			\amp, Pgeom(0.8, 0.7),
+			\rel, 10,
+			\dur, Pseq([2], repeats),
+			\pan, pan,
+			\out, ~revBus,
+		).play(t);
+	};
+
+	r = Routine({
+		c.do({
+			|i|
+			case
+			{ i[0].asString == "1" }		{ ~note.value(i) }
+			{ i[0].asString == "0" }		{ ~ctrl.value(i) }
+			{ Error("Unexpected 1st character: % in %".format(i[0], i)).throw; };
+			1.yield;
+		})
+	}).play(t);
+}, onFailure: \waitForBoot_FAILED.postln
+);
 )
 
 					/////////////////////////
 					//       Testing       //
 					/////////////////////////
-// Bell
-({
-	var sig, mod, am, hit, high,
-	env, modenv, amenv, hitenv, highenv, dampenv, dampenv1,
-	rel, freq, amp;
-
-	freq = rrand(299,301);
-	amp = 0.8 * rrand(0.48, 0.5);
-	rel = 0.25;
-
-	modenv = EnvGen.ar(
-		Env.perc(0.01, rrand(rel+5, rel+25))
-	);
-	env = EnvGen.ar(Env.new(
-		[0.005, 1, 0.6, 0.0001],
-		[0.002, 0.075, rrand(7,9)],
-		'exp'
-	), doneAction: 2
-	);
-	amenv = EnvGen.ar(
-		Env.perc(0.005, rrand(rel+5, rel+25))
-	);
-	hitenv = EnvGen.ar(
-		Env.perc(0.05, 0.2)
-	);
-	highenv = EnvGen.ar(
-		Env.perc(0.005, rrand(rel+5, rel+25))
-	);
-	dampenv = EnvGen.ar(Env.new(
-		[15000, 30],
-		[rel+0.25],
-		-2
-	)
-	);
-	dampenv1 = EnvGen.ar(
-		Env.perc(0.0001, rel)
-	);
-
-	hit = RLPF.ar(
-		SinOsc.ar(
-			XLine.ar(freq*4, freq, 0.05)
-			*SinOsc.ar(freq*0.92, mul:0.5)
-			*SinOsc.ar(freq*0.98, mul:0.5),
-			mul: amp/4,
-			add: SinOsc.ar(freq, mul:0.5) + 0.5),
-		XLine.ar(freq*2, freq, 0.05), 1/2)
-	* hitenv;
-
-	high = Mix.ar(
-		SinOsc.ar(
-		[
-			freq*rrand(1.5, 2)*SinOsc.ar(freq*rrand(1.5, 2)),
-			freq*rrand(1.5,2),
-			freq*rrand(2.1, 2.5)*SinOsc.ar(freq*rrand(2.2, 2.5))
-	],
-		mul:rrand(amp/8, amp/15)))
-	* highenv;
-
-	am = SinOsc.ar(
-		freq * rrand(0.9, 1.1),
-		mul: rrand(0.4, 0.6))
-	* amenv;
-
-	mod = SinOsc.ar(freq, mul: rrand(0.45, 0.5)) + SinOsc.ar(freq*rrand(1.77, 1.82),
-		mul: rrand(0.45, 0.5)) * modenv;
-
-	sig = SinOsc.ar(
-		[
-			freq + rrand(1500, 1600),
-			(freq - rrand(1500, 1600)).clip(50, 20000),
-			freq
-		] * mod * 1/3,
-		add: ((am * 0.5) + 0.5)
-		* (SinOsc.ar(LFNoise1.ar(rrand(1,2)).range(1.5, 2),
-			mul:0.2
-		) + 0.2)
-	);
-	sig = sig + hit + high;
-	sig = sig * env * amp;
-	sig = LPF.ar(sig, (freq * rrand(18, 22)));
-	// sig = LPF.ar(sig, dampenv);
-	sig = sig * dampenv1;
-	sig = HPF.ar(sig, freq);
-	sig = Mix.ar(sig);
-	Pan2.ar(sig, rrand(-0.2, 0.2));
-}.play;
-)
-
-s.boot;
-
 Synth.new(\bell);
 
 ({
@@ -376,39 +341,26 @@ Synth.new(\bell);
 	Pan2.ar(sig*amp*env, 0);
 }.play;
 )
-
-
-(
-SynthDef.new(\tone, {
-	arg freq=200, rel=0.1;
-	var sig, mod, env, modenv, amp;
-	amp = 1;
-	env = EnvGen.ar(Env.perc(0.01, rel), doneAction: 2);
-	modenv = EnvGen.ar(Env.perc(0.001, rel));
-	mod = Saw.ar(freq, mul: modenv);
-	// freq = freq*mod;
-	sig = LPF.ar(
-		SinOsc.ar(freq, mul: 0.7) +
-		LPF.ar(WhiteNoise.ar(0.3), 1000*XLine.ar(1, 0.001, 0.1), modenv) +
-		SinOsc.ar(freq/2, mul:0.2),
-		1000
-	).tanh;
-	sig = Pan2.ar(sig*amp*env, 0);
-	Out.ar(0, sig);
-}).add;
-)
-
+b
 (
 Pbind(
     \instrument, \tone,
-    \midinote, Pseq([0, 2, 4, 5, 7, 9, 12, 0, 4, 7, 6, 5, 4, 9, 12], inf) + 40,
-	\dur, Pseq([0.1], inf),
-	\rel, 0.1,
+    \midinote, Pseq([0, 0, 0], inf) + 40,
+	\dur, Pseq([1/6], inf),
+	\rel, 2,
 	\pan, Pwhite(-1, 1),
 ).play;
 )
 
 
 
+(
 x = "1234567890";
-"".catList(x[(0..1)]).class;
+"".catList(x[(0..1)]).postln;
+x.slice([0, 1]).postln;
+
+i = [$1, $2, $3, $4];
+y = "".catList(i[(2..3)]).postln;
+y.asInteger.linlin(0, 99, 160, 200).postln;
+)
+
