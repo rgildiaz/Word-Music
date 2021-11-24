@@ -59,7 +59,7 @@ s.waitForBoot({
 
 	// scrap this
 	SynthDef.new( \bell, {
-		arg freq=300, amp=0.8, rel=0.25;
+		arg freq=300, amp=0.8, rel=0.25, out=0;
 		var sig, mod, am, hit, high,
 		env, modenv, amenv, hitenv, highenv, dampenv;
 
@@ -134,7 +134,7 @@ s.waitForBoot({
 		sig = HPF.ar(sig, freq);
 		sig = Mix.ar(sig);
 		sig = Pan2.ar(sig, rrand(-0.2, 0.2));
-		Out.ar(0, sig);
+		Out.ar(out, sig);
 	}).add;
 
 	SynthDef.new(\tone, {
@@ -159,15 +159,15 @@ s.waitForBoot({
 		var sig;
 		sig = In.ar(in, 2);
 		sig = FreeVerb.ar(sig, amount, 0.75, 0.3);
-		sig = Compander.ar(sig, sig, 0.2, 1, 0.1, 0.01, 0.01);
-		// sig = Limiter.ar(sig);
+		// sig = Compander.ar(sig, sig, 0.2, 1, 0.1, 0.01, 0.01);
+		sig = Limiter.ar(sig, 0.8);
 		Out.ar(out, sig);
 	}).add;
 
 	// Sync server
 	s.sync();
 
-	// Synth.new(\reverb, target: s.defaultGroup, addAction: \addAfter);
+	Synth.new(\reverb, target: s.defaultGroup, addAction: \addAfter);
 
 
 					/////////////////////////
@@ -265,27 +265,6 @@ Encoding
 		nil;
 	};
 
-	~percShort = {
-		|i|
-		var deg, repeats, pan;
-		i.postln;
-		deg = rrand(0, 7);
-		// .asInteger cannot handle chars.
-		repeats = "".catList(i[(8..9)]).asInteger;
-		repeats.postln;
-		pan = rrand(-1.0, 1.0);
-		Pbind(
-			\instrument, \tone2,
-			\scale, Pdefn(\scale, ~scale),
-			\degree, deg,
-			\amp, Pgeom(Pwhite(0.2, 0.3), 0.5),
-			\rel, 0.1,
-			\dur, Pseq([2], repeats),
-			\pan, pan,
-			// \out, ~revBus,
-		).play(t);
-	};
-
 	~pitchLong = {
 		|i|
 		var deg, repeats, pan;
@@ -303,6 +282,26 @@ Encoding
 			\rel, 10,
 			\dur, Pseq([2], repeats),
 			\pan, pan,
+			\out, ~revBus,
+		).play(t);
+	};
+
+	~percShort = {
+		|i|
+		var deg, repeats, pan;
+		i.postln;
+		deg = (1..100).collect({
+			|i|
+			i*50;
+		});
+		repeats = "".catList(i[(8..9)]).asInteger;
+		repeats.postln;
+		Pbind(
+			\instrument, \tone2,
+			\freq, Pseq(deg, inf),
+			\amp, Pgeom(0.2, 0.9, repeats),
+			\rel, 0.5,
+			\dur, Pwrand([1, 1.5, 2, 2.5], [3, 1, 12, 1].normalizeSum, inf),
 			\out, ~revBus,
 		).play(t);
 	};
