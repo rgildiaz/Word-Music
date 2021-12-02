@@ -35,6 +35,7 @@ s.waitForBoot({
 
 	t = TempoClock.new(240/60).permanent_(true);
 	~scale = Scale.dorian;
+	~set = [60, 59, 48, 50, 72, 80, 55]				// a MIDI notenum set, changed using ~key.value()
 
 	// Buses
 	s.newBusAllocators;
@@ -131,21 +132,22 @@ Encoding
 
 	~note = {
 		|i|
+		j = i[1].asString;
 		case
-		{ i[1].asString == "0" }			{ ~rest.value(i)      }
-		{ i[1].asString == "1" }			{ ~percShort.value(i) }
-		{ i[1].asString == "2" }			{ ~percShort.value(i) }
-		{ i[1].asString == "3" }			{ ~percShort.value(i) }
-		{ i[1].asString == "4" }			{ ~pitchLong.value(i) }
-		{ Error("Note: Unexpected 2nd character: % in %".format(i[1], i)).throw; }
+		{ j == "0" }			{ ~rest.value(i)      }
+		{ j == "1" }			{ ~percShort.value(i) }
+		{ j == "2" }			{ ~percShort.value(i) }
+		{ j == "3" }			{ ~percShort.value(i) }
+		{ j == "4" }			{ ~pitchLong.value(i) }
+		{ Error("Note: Unexpected 2nd character: % in %".format(j, i)).throw; }
 	};
 
 	~ctrl = {
 		|i|
 		case
-		{ i[1].asString == "0" }			{ ~tempo.value(i) }
-		{ i[1].asString == "1" }			{ ~key.value(i)   }
-		{ Error("Control: Unexpected 2nd character: % in %".format(i[1], i)).throw; }
+		{ j == "0" }			{ ~tempo.value(i) }
+		{ j == "1" }			{ ~key.value(i)   }
+		{ Error("Control: Unexpected 2nd character: % in %".format(j, i)).throw; }
 	};
 
 
