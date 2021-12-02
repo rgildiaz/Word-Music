@@ -1,7 +1,6 @@
 from gutenburg import *
 from alg import Alg
 from pythonosc import *
-import re
 import math
 
 '''
@@ -36,9 +35,9 @@ Encoding
                     type  control type   value
 
                 Note:
-                     1         0           00          00          00          00
-                     ^         ^           ^           ^           ^           ^
-                    type    quality     velocity     reverb      pitch      repeats
+                     1         0           00         00          00
+                     ^         ^           ^          ^           ^
+                    type    quality     velocity    pitch      repeats
                     
     Each value is encoded as follows:
         type                0: Control
@@ -56,7 +55,6 @@ Encoding
                             3: Short Pitch
                             4: Long Pitch
             velocity        range(0,99)
-            reverb          range(0,99)
             pitch           range(0,99)
 '''
 
@@ -165,22 +163,16 @@ class Alg0(Alg):
         else:
             out += '50'
         
-        # if note is at least 3 char long, read its reverb
+        # if note is at least 3 char long, read its pitch
         if len(note) >= 3:
             out += f"{mappings.index(note[2])%100:02}"
         else:
             out += '50'
 
-        # if note is at least 4 char long, read its pitch
-        if len(note) >= 4:
-            out += f"{mappings.index(note[3])%100:02}"
-        else:
-            out += '50'
-
-        # if note is at least 5 char long, count repeats
+        # if note is at least 4 char long, count repeats
         if len(note) >= 5:
-            # note of len 5 will play twice. Wraps at 100
-            out += f"{(len(note)-3)%100:02}"
+            # note of len 4 will play twice. Wraps at 100
+            out += f"{(len(note)-2)%100:02}"
         else:
             out += '01'
 
