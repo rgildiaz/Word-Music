@@ -27,7 +27,6 @@ s.waitForBoot({
 	});
 	// c = ["0099", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307", "1224241307"];
 	c.postln;
-	// c = Array.fill(1, c[2]);
 	"File loaded!".postln;
 
 					/////////////////////////
@@ -54,86 +53,6 @@ s.waitForBoot({
 			1000
 		);
 		sig = Pan2.ar(sig*amp*env, pan);
-		Out.ar(out, sig);
-	}).add;
-
-	// scrap this
-	SynthDef.new( \bell, {
-		arg freq=300, amp=0.8, rel=0.25, out=0;
-		var sig, mod, am, hit, high,
-		env, modenv, amenv, hitenv, highenv, dampenv;
-
-		amp = amp * rrand(0.48, 0.5);
-
-		modenv = EnvGen.ar(
-			Env.perc(0.01, rrand(rel+5, rel+25))
-		);
-		env = EnvGen.ar(Env.new(
-			[0.005, 1, 0.6, 0.0001],
-			[0.002, 0.075, rrand(7,9)],
-			'exp'
-		), doneAction: 2
-		);
-		amenv = EnvGen.ar(
-			Env.perc(0.005, rrand(rel+5, rel+25))
-		);
-		hitenv = EnvGen.ar(
-			Env.perc(0.05, 0.2)
-		);
-		highenv = EnvGen.ar(
-			Env.perc(0.005, rrand(rel+5, rel+25))
-		);
-
-		dampenv = EnvGen.ar(
-			Env.perc(0.0001, rel)
-		);
-
-		hit = RLPF.ar(
-			SinOsc.ar(
-				XLine.ar(freq*4, freq, 0.05)
-				*SinOsc.ar(freq*0.92, mul:0.5)
-				*SinOsc.ar(freq*0.98, mul:0.5),
-				mul: amp/4,
-				add: SinOsc.ar(freq, mul:0.5) + 0.5),
-			XLine.ar(freq*2, freq, 0.05), 1/2)
-		* hitenv;
-
-		high = Mix.ar(
-			SinOsc.ar(
-				[
-					freq*rrand(1.5, 2)*SinOsc.ar(freq*rrand(1.5, 2)),
-					freq*rrand(1.5,2),
-					freq*rrand(2.1, 2.5)*SinOsc.ar(freq*rrand(2.2, 2.5))
-				],
-				mul:rrand(amp/8, amp/15)))
-		* highenv;
-
-		am = SinOsc.ar(
-			freq * rrand(0.9, 1.1),
-			mul: rrand(0.4, 0.6))
-		* amenv;
-
-		mod = SinOsc.ar(freq, mul: rrand(0.45, 0.5)) + SinOsc.ar(freq*rrand(1.77, 1.82),
-			mul: rrand(0.45, 0.5)) * modenv;
-
-		sig = SinOsc.ar(
-			[
-				freq + rrand(1500, 1600),
-				(freq - rrand(1500, 1600)).clip(50, 20000),
-				freq
-			] * mod * 1/3,
-			add: ((am * 0.5) + 0.5)
-			* (SinOsc.ar(LFNoise1.ar(rrand(1,2)).range(1.5, 2),
-				mul:0.2
-			) + 0.2)
-		);
-		sig = sig + hit + high;
-		sig = sig * env * amp;
-		sig = LPF.ar(sig, (freq * rrand(18, 22)));
-		sig = sig * dampenv;
-		sig = HPF.ar(sig, freq);
-		sig = Mix.ar(sig);
-		sig = Pan2.ar(sig, rrand(-0.2, 0.2));
 		Out.ar(out, sig);
 	}).add;
 
