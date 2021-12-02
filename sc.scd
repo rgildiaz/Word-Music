@@ -104,9 +104,9 @@ Encoding
                     type  control type   value
 
                 Note:
-                     1         0           00          00          00          00
-                     ^         ^           ^           ^           ^           ^
-                    type    quality     velocity     reverb      pitch      repeats
+                     1         0           00         00          00
+                     ^         ^           ^          ^           ^
+                    type    quality     velocity    pitch      repeats
 
     Each value is encoded as follows:
         type                0: Control
@@ -148,8 +148,15 @@ Encoding
 		{ Error("Control: Unexpected 2nd character: % in %".format(i[1], i)).throw; }
 	};
 
-	// Control funcs
 
+	// Helper funcs
+	~repeat = {
+		|i|
+		"".catList(i[(6..7)]).asInteger;
+	};
+
+
+	// Control funcs
 	~key = {
 		// ~scale = Scale.modename
 		// change Pdefn
@@ -178,8 +185,8 @@ Encoding
 		Array.interpolation(12, temp, val).postln;
 	};
 
-	// Note funcs
 
+	// Note funcs
 	~rest = {
 		nil;
 	};
@@ -189,8 +196,7 @@ Encoding
 		var deg, repeats, pan;
 		i.postln;
 		deg = [0, 4].choose;
-		// .asInteger cannot handle chars.
-		repeats = "".catList(i[(8..9)]).asInteger;
+		repeats = ~repeat.value(i);
 		repeats.postln;
 		pan = rrand(-1.0, 1.0);
 		Pbind(
@@ -213,7 +219,7 @@ Encoding
 			|i|
 			i*50;
 		});
-		repeats = "".catList(i[(8..9)]).asInteger;
+		repeats = ~repeat.value(i);
 		repeats.postln;
 		Pbind(
 			\instrument, \tone2,

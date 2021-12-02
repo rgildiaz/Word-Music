@@ -140,7 +140,7 @@ class Alg0(Alg):
         # check for Rest
         for i in note:
             if i not in mappings:
-                return out + '0'*9
+                return out + '0'*7
 
         # generally unpitched, coded as 1 or 2
         if note[0] in letters:
