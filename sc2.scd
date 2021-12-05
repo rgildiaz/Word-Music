@@ -3,14 +3,12 @@
 
 (
 s.quit;
-
-
 					/////////////////////////
 					// Load the input file //
 					/////////////////////////
 
 ~path = PathName(thisProcess.nowExecutingPath).parentPath;
-~in = ~path ++ "alg_out/out.txt";
+~in = ~path ++ "alg_out/out1.txt";
 ~in.postln;
 
 // Check if path to file is correct
@@ -33,18 +31,126 @@ c.postln;
 "File loaded!".postln;
 
 
-/////////////////////////
-//        Setup        //
-/////////////////////////
-
-t = TempoClock.new(240/60).permanent_(true);
+					/////////////////////////
+					//        Setup        //
+					/////////////////////////
 
 // Buses
 s.newBusAllocators;
 
+// Variables
+~amstr = ""
+~fmstr = ""
+
+
 s.waitForBoot({
 
+	t = TempoClock.new(120/60).permanent_(true);
+
 	// SynthDefs
+	/*
+	\basic
+
+	@param out			output channel
+	@param pan			pan position
+	@param dur			note duration
+
+	@param freq1		carrier starting freq
+	@param freq2		carrier ending freq
+	@param freqcurve	carrier freq curve
+	@param amp			carrier overall amp
+	@param ampatk		carrier atk
+	@param amprel		carrier rel
+
+	@param amdur		am duration
+	@param amamount		am amount
+	@param amfreq1		am starting freq
+	@param amfreq2		am ending freq
+	@param amfreqcurve	am freq curve
+	@param amamp		am overall amp
+	@param amampatk		am atk
+	@param amamprel		am rel
+
+	@param fmdur		fm duration
+	@param fmamount		fm amount
+	@param fmfreq1		fm starting freq
+	@param fmfreq2		fm ending freq
+	@param fmfreqcurve	fm freq curve
+	@param fmamp		fm overall amp
+	@param fmampatk		fm atk
+	@param fmamprel		fm rel
+	*/
+	SynthDef.new( \basic, {
+		arg out=0, pan=0,
+		dur, freq1, freq2, freqcurve, amp, ampcurve, ampatk, amprel,
+		amdur, amamount, amfreq1, amfreq2, amfreqcurve, amamp, amampcurve, amampatk, amamprel,
+		fmdur, fmamount, fmfreq1, fmfreq2, fmfreqcurve, fmamp, fmampcurve, fmampatk, fmamprel;
+
+		var sig, freqenv, ampenv, am, amenv, amampenv, fm, fmenv, fmampenv;
+
+		// carrier envs
+		ampenv = EnvGen.ar(
+			Env.new(
+				[0, 1, 0],
+				[ampatk, amprel],
+				ampcurve
+			),
+			doneAction:2
+		);
+
+		freqenv = EnvGen.ar(
+			Env.new(
+				[freq1, freq2],
+				[dur],
+				freqcurve
+			)
+		);
+
+		// am envs
+		amampenv = EnvGen.ar(
+			Env.new(
+				[0, 1, 0],
+				[amampatk, amamprel],
+				amampcurve
+			)
+		);
+
+		amfreqenv = EnvGen.ar(
+			Env.new(
+				[amfreq1, amfreq2],
+				[amdur],
+				amfreqcurve
+			)
+		);
+
+		// fm envs
+		fmampenv = EnvGen.ar(
+			Env.new(
+				[0, 1, 0],
+				[fmampatk, fmamprel],
+				fmampcurve
+			)
+		);
+
+		fmfreqenv = EnvGen.ar(
+			Env.new(
+				[fmfreq1, fmfreq2],
+				[fmdur],
+				fmfreqcurve
+			)
+		);
+
+		// Synthesis
+		fm = SinOsc.ar(fmenv, mul:fmampenv);
+		am = SinOsc.ar(amenv, mul:amampenv);
+		sig = SinOsc.ar(freqenv*fm, mul: am);
+
+		sig = Pan2.ar(sig, pan);
+		Out.ar(out, sig);
+
+	}).add;
+
+
 
 					/////////////////////////
 					//    Parse + Output   //
@@ -55,45 +161,46 @@ s.waitForBoot({
 
 	~note = {
 		|i|
-		j = i[1].asString;
-		case
-		{ j == "0" }			{ ~rest.value(i)      }
-		{ j == "1" }			{ ~percShort.value(i) }
-		{ j == "2" }			{ ~percShort.value(i) }
-		{ j == "3" }			{ ~percShort.value(i) }
-		{ j == "4" }			{ ~pitchLong.value(i) }
-		{ Error("Note: Unexpected 2nd character: % in %".format(j, i)).throw; }
-	};
+		Synth(\basic, [
+			dur,
+			freq1,
+			freq2,
+			freqcurve,
+			amp,
+			ampcurve,
+			ampatk,
+			amprel,
 
-	~ctrl = {
-		|i|
-		case
-		{ j == "0" }			{ ~tempo.value(i) }
-		{ j == "1" }			{ ~key.value(i)   }
-		{ Error("Control: Unexpected 2nd character: % in %".format(j, i)).throw; }
+			amdur,
+			amamount,
+			amfreq1,
+			amfreq2,
+			amfreqcurve,
+			amamp,
+			amampcurve,
+			amampatk,
+			amamprel,
+
+			fmdur,
+			fmamount,
+			fmfreq1,
+			fmfreq2,
+			fmfreqcurve,
+			fmamp,
+			fmampcurve,
+			fmampatk,
+			fmamprel,
+		]);
 	};
 
 
 	// Helper funcs
-	~repeat = {
-		|i|
-		"".catList(i[(6..7)]).asInteger;
-	};
 
 	// read velocity input and scale accordingly
 	~amp = {
 		|i|
 		a = "".catList(i[(2..3)]).asInteger;
 		a.linlin(0, 99, 0, 0.8)
-	};
-
-	// read dur instead of repeats for long words
-	~dur = {
-		|i|
-		r = "".catList(i[(6..7)]).asInteger;
-		r = r+5;
-		x = rrand(0, 1);
-		[r*x, r*(1-x)];
 	};
 
 
@@ -129,11 +236,8 @@ s.waitForBoot({
 	r = Routine({
 		c.do({
 			|i|
-			case
-			{ i[0].asString == "1" }		{ ~note.value(i) }
-			{ i[0].asString == "0" }		{ ~ctrl.value(i) }
-			{ Error("Unexpected 1st character: % in %".format(i[0], i)).throw; };
-			1.yield;
+			~note.value(i);
+			1/4.yield;
 		})
 	}).play(t);
 }, onFailure: \waitForBoot_FAILED.postln
@@ -153,5 +257,13 @@ x.slice([0, 1]).postln;
 i = [$1, $2, $3, $4];
 y = "".catList(i[(2..3)]).postln;
 y.asInteger.linlin(0, 99, 160, 200).postln;
+)
+
+(
+SynthDef.new( \test, {
+	var sig, freqenv;
+	sig = SinOsc.ar(freqenv);
+}
+).add;
 )
 
