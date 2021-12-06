@@ -39,8 +39,9 @@ c.postln;
 s.newBusAllocators;
 
 // Variables
-~amstr = ""
-~fmstr = ""
+~amstr = "";
+~fmstr = "";
+~MAXAMP = 0.8;
 
 
 s.waitForBoot({
@@ -196,41 +197,32 @@ s.waitForBoot({
 
 	// Helper funcs
 
+	// Return a dictionary containing the token's dur, amamount, fmamount, freq1, freq2, freqcurve, amp, ampcurve, ampatk, and amprel.
+	~parseToken = {
+		arg i;
+		var out;
+		out = Dictionary();
+
+		out.put(\dur, 		~dur.value(i)		);
+		out.put(\amamount, 	~amamount.value(i)	);
+		out.put(\fmamount, 	~dur.value(i)		);
+		out.put(\freq1, 	~freq.value(i)[0]	);
+		out.put(\freq2, 	~freq.value(i)[1]	);
+		out.put(\freqcurve, ~freqcurve.value(i)	);
+		out.put(\amp,	 	~amp.value(i)		);
+		out.put(\ampcurve, 	~ampcurve.value(i)	);
+		out.put(\ampatk, 	~ampdurs.value(i)[0]);
+		out.put(\amprel, 	~ampdurs.value(i)[1]);
+
+
+		out;
+	}
+
 	// read velocity input and scale accordingly
 	~amp = {
 		|i|
 		a = "".catList(i[(2..3)]).asInteger;
-		a.linlin(0, 99, 0, 0.8)
-	};
-
-
-	// Control funcs
-	~key = {
-		// ~scale = Scale.modename
-		// change Pdefn
-		Pdefn(\scale, ~scale);
-	};
-
-
-	~tempo = {
-		// make another routine
-		|i|
-		var temp, val, minTempo, maxTempo;
-
-		minTempo = 160/60;
-		maxTempo = 300/60;
-		temp = t.tempo;
-		val = "".catList(i[(2..3)]).asInteger.linlin(0, 99, minTempo, maxTempo);
-
-		// Should overwrite if two tempo changes in a row since this is named
-		~tempoChange = Routine.new({
-			Array.interpolation(12, temp, val).do({
-				|i|
-				t.tempo_(i).postln;
-				3.yield;
-		})}
-		).play(t);
-		Array.interpolation(12, temp, val).postln;
+		a.linlin(0, 99, 0, ~MAXAMP)
 	};
 
 	r = Routine({

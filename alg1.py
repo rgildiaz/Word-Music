@@ -31,9 +31,9 @@ Encoding
 
             Example:
                 Note:
-                     1         00          00         00        00     00
-                     ^         ^           ^          ^         ^      ^
-                    note    amplitude   amp_curve  pitch_curve  AM     FM
+                     1      00    00    00      00          00         00           00     00
+                     ^      ^     ^     ^       ^           ^          ^            ^      ^
+                    note   dur   freq1  freq 2  amplitude   amp_curve  pitch_curve  AM     FM
 '''
 
 class Alg1(Alg):
@@ -115,15 +115,6 @@ class Alg1(Alg):
 
 # debug
 if __name__ == "__main__":
-    lorem = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas efficitur mi sit amet odio elementum, ac vestibulum diam euismod. Aenean ultricies mollis turpis, non bibendum mi suscipit id. Vestibulum vulputate lacus lacus, et pulvinar dui suscipit nec. Nulla rutrum urna quis odio imperdiet egestas. Curabitur sit amet feugiat massa. Suspendisse potenti. Donec rhoncus sapien ac consequat suscipit. Cras fermentum congue interdum. Duis eget lacinia velit. Vivamus blandit posuere massa nec porta. Ut lacus nibh, tincidunt at erat vel, interdum faucibus erat. Praesent sodales maximus mi, ut bibendum ipsum varius dapibus. Pellentesque sed nisi vitae ligula condimentum fermentum sed ac mauris. Phasellus tempor aliquet urna, id volutpat tellus blandit a. Fusce vel tincidunt risus. Aliquam tincidunt, nibh vel dignissim accumsan, erat nisl ornare massa, id blandit lacus turpis et diam.\nProin ut iaculis turpis. Mauris in nisl ullamcorper, hendrerit turpis et, mattis leo. Sed vel elit in urna dignissim dapibus eget nec odio. Integer ultricies id risus quis blandit. Duis non libero nisl. Ut sit amet dolor sem. Sed venenatis molestie vehicula. Donec interdum arcu ac quam porttitor, sollicitudin suscipit risus auctor. Curabitur diam mauris, suscipit et libero sed, facilisis aliquam quam. Donec interdum hendrerit felis, efficitur vestibulum magna eleifend eget. Nunc nibh leo, viverra ut dui id, dictum ultrices sapien. Integer pulvinar orci sit amet purus fermentum, non mattis augue volutpat. Etiam tellus nunc, aliquam vitae ipsum in, sagittis luctus tellus. Mauris luctus dui nec suscipit gravida. Ut ac turpis ac nibh molestie accumsan. \nInteger euismod bibendum dolor, eget commodo neque ultricies molestie. Quisque dui odio, consectetur at euismod nec, sodales sit amet arcu. Quisque eleifend justo vel odio finibus consectetur. Aenean auctor nisl at dignissim pellentesque. Suspendisse porta dolor condimentum, eleifend ipsum eget, venenatis mi. Sed rutrum leo eu porta finibus. Aliquam quis nibh placerat, lacinia ante non, tempus purus. Aliquam nulla ligula, pellentesque in purus gravida, ultrices pellentesque est. Phasellus volutpat dui a lectus ultrices, nec vulputate sem accumsan. Cras eu urna eu nisl mattis semper. Sed vehicula rutrum erat eget auctor. Vivamus turpis tellus, rhoncus sed varius nec, accumsan quis nunc. Duis sagittis at justo ac sollicitudin. Fusce pharetra nisi nec ante vehicula ullamcorper. Integer porta nec libero in luctus. \nPellentesque consequat urna nec accumsan suscipit. Phasellus in pulvinar elit. Sed posuere odio non mi iaculis tristique. Cras pharetra libero quis ante interdum pretium sed eu ex. Morbi rhoncus nulla sed mollis pretium. Integer a pulvinar enim, sollicitudin facilisis est. In iaculis turpis augue, non semper massa vulputate sit amet. \nNullam et purus lectus. Ut vel nulla sapien. Aenean vulputate metus a nisl pretium mattis vel sed magna. Suspendisse eleifend, neque in lacinia egestas, ex odio suscipit lectus, id facilisis dui augue vitae ex. Etiam mattis sit amet metus et aliquet. Phasellus venenatis ligula sit amet urna consectetur, eu aliquam dolor venenatis. Aliquam faucibus sit amet tellus non suscipit. Ut porta massa at erat fermentum congue. Quisque vehicula massa sem, ac ornare libero consectetur non. Aenean lobortis rhoncus arcu, ut pulvinar arcu ullamcorper at. Nunc id nisl a libero hendrerit lacinia quis sed ipsum. Cras cursus elit at dapibus cursus. Suspendisse consectetur risus ut tempus pellentesque. Vivamus sit amet finibus mi, ut mollis libero.'
     # x = Alg1(lorem)
     # print(x)
     print(len(string.printable), string.printable)
-
-    this =  ['apple', 'ban34na', 'pear']
-    for i, x in enumerate(this):
-        for j, y in enumerate(x):
-            if y not in string.ascii_letters:
-                this[i] = this[i].replace(y, "a")
-
-    print(this)
