@@ -39,9 +39,10 @@ c.postln;
 s.newBusAllocators;
 
 // Variables
-~amstr = "";
-~fmstr = "";
-~MAXAMP = 0.8;
+~amstr 		= "1".padRight(17, "0");
+~fmstr 		= "1".padRight(17, "0");
+~counter 	= 0;
+~MAXAMP 	= 0.8;
 
 
 s.waitForBoot({
@@ -162,36 +163,51 @@ s.waitForBoot({
 
 	~note = {
 		|i|
+		var vals;
+		vals 	= ~parseToken.value(i);
+		amvals 	= ~parseToken.value(~amstr);
+		fmvals 	= ~parseToken.value(~fmstr);
+
+		// ~amstr and ~fmstr default to all values being 0.
+		if ( ~counter > 2,
+			{
+				~amstr = c[~counter - 2];
+				~fmstr = c[~counter - 1];
+			}
+		);
+
 		Synth(\basic, [
-			dur,
-			freq1,
-			freq2,
-			freqcurve,
-			amp,
-			ampcurve,
-			ampatk,
-			amprel,
+			dur,			vals[\dur],
+			freq1,			vals[\freq1],
+			freq2,			vals[\freq2],
+			freqcurve,		vals[\freqcurve],
+			amp,			vals[\amp],
+			ampcurve,		vals[\ampcurve],
+			ampatk,			vals[\ampatk],
+			amprel,			vals[\amprel],
 
-			amdur,
-			amamount,
-			amfreq1,
-			amfreq2,
-			amfreqcurve,
-			amamp,
-			amampcurve,
-			amampatk,
-			amamprel,
+			amdur,			amvals[\dur],
+			amamount,		vals[\amamount],
+			amfreq1,		amvals[\freq1],
+			amfreq2,		amvals[\freq2],
+			amfreqcurve,	amvals[\freqcurve],
+			amamp,			amvals[\amp],
+			amampcurve,		amvals[\ampcurve],
+			amampatk,		amvals[\ampatk],
+			amamprel,		amvals[\amprel],
 
-			fmdur,
-			fmamount,
-			fmfreq1,
-			fmfreq2,
-			fmfreqcurve,
-			fmamp,
-			fmampcurve,
-			fmampatk,
-			fmamprel,
+			fmdur,			fmvals[\dur],
+			fmamount,		vals[\fmamount],
+			fmfreq1,		fmvals[\freq1],
+			fmfreq2,		fmvals[\freq2],
+			fmfreqcurve,	fmvals[\freqcurve],
+			fmamp,			fmvals[\amp],
+			fmampcurve,		fmvals[\ampcurve],
+			fmampatk,		fmvals[\ampatk],
+			fmamprel,		fmvals[\amprel],
 		]);
+
+		~counter = ~counter + 1;
 	};
 
 
@@ -205,7 +221,7 @@ s.waitForBoot({
 
 		out.put(\dur, 		~dur.value(i)		);
 		out.put(\amamount, 	~amamount.value(i)	);
-		out.put(\fmamount, 	~dur.value(i)		);
+		out.put(\fmamount, 	~fmamount.value(i)	);
 		out.put(\freq1, 	~freq.value(i)[0]	);
 		out.put(\freq2, 	~freq.value(i)[1]	);
 		out.put(\freqcurve, ~freqcurve.value(i)	);
@@ -214,11 +230,15 @@ s.waitForBoot({
 		out.put(\ampatk, 	~ampdurs.value(i)[0]);
 		out.put(\amprel, 	~ampdurs.value(i)[1]);
 
-
 		out;
-	}
+	};
 
-	// read velocity input and scale accordingly
+	~dur = {
+		|i|
+		a = "".catList(i[(2..3)]).asInteger;
+		a.linlin(0, 99, 0, ~MAXAMP)
+	};
+
 	~amp = {
 		|i|
 		a = "".catList(i[(2..3)]).asInteger;
