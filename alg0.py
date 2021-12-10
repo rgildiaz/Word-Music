@@ -180,6 +180,6 @@ class Alg0(Alg):
 
 # debug
 if __name__ == "__main__":
-    g = gutenburg('Frank')
-    x = Alg0(g.get_text())
+    g = gutenburg('Bird')
+    x = Alg0(g.load_text())
     print(x)
