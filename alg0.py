@@ -6,10 +6,10 @@ import math
 '''
 Alg0:
 Goal
-    Pass values to SuperCollider, allowing some room for randomness. I wanted to avoid a very sound, so I am intentionally avoiding the beeps and bloops that would come from using the first character of each word to determine the pitch, rather aiming for something less defined. This also uses keywords in the text to determine larger scale differences ('rate' or 'tempo' change the tempo, etc.)
+    Pass values to SuperCollider based on the words in the digested book, allowing some room for randomness. This also uses keywords in the text to determine larger scale differences ('rate' or 'tempo' change the tempo, etc.)
 
 Words
-    Each token is at least 1 char long. 1st char in each token determines {some important param}. Each other slot has a default value that is changed depending on char in that place.
+    Each token is at least 1 char long:
 
             Example:
                         W           O            R            D
@@ -19,9 +19,9 @@ Words
     @param quality          Intentionally vague. Letters: generally unpitched. Numbers: generally pitched.
     @param velocity         The velocity of the note. Range=0-35.
     @param pitch            The degree in SuperCollider's scale/degree system.
+    @param repeats          The number of times the sound repeats.
 
-    The note is repeated based on the word length. Range=0-inf. Repeats increases with word length (n-letter word = n-3, where n > 2)
-    Words are read at 3 words/second.
+    The note is repeated based on the word length. Range=0-100. Repeats increase with word length (n-letter word = n-3, where n > 2)
     Symbols appearing anywhere in a word make that word a Rest() event instead.
 
 Encoding
