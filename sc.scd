@@ -28,6 +28,9 @@ c = x.collect({
 		{i}
 	)
 });
+
+// c = ["11505099"];
+
 c.postln;
 "File loaded!".postln;
 
@@ -67,23 +70,27 @@ d 		=	Dictionary.newFrom([
 
 
 // env arrays represent atk and rel times.
-~env1	=	[0.01, 1.99];
+~env1	=	[0.01, 0.5];
 ~env2	=	[1, 1];
 ~env 	=	~env1;
 
 // set arrays represent pitches.
-~set1 	= 	Array.fib(8, 1, 1).collect({|i| (i+~root);});
-~set2 	= 	Array.fib(8, 2, 1).collect({|i| (i+~root);});
+~set1 	= 	Array.exprand(100, 50, 10000).sort;
+~set2 	= 	Array.exprand(100, 50, 10000).sort;
 ~set	= 	~set1;
+
+~set1.do({|i| i.postln;});
+~set2.do({|i| i.postln;});
 
 // scount counts the beats. Used by ~change.() and ~count.().
 ~scount =	0;
+~maxcnt =	16;
 
 
 // Busses
-s.newBusAllocators;
+/*s.newBusAllocators;
 ~revBus = 	Bus.new('audio', numChannels:2);
-~limBus = 	Bus.new('audio', numChannels:2);
+~limBus = 	Bus.new('audio', numChannels:2);*/
 
 
 
@@ -94,11 +101,11 @@ s.newBusAllocators;
 s.waitForBoot({
 
 	// Groups
-	~srcGrp = Group.new();
-	~fxGrp	= Group.new(~srcGrp, \addAfter);
+	/*~srcGrp = Group.new();
+	~fxGrp	= Group.new(~srcGrp, \addAfter);*/
 
 	// SynthDefs
-	SynthDef.new( \tone2, {
+	SynthDef.new( \pitchShort, {
 		arg freq=200, amp=0.5, out=0, rel=0.25, pan=0;
 		var sig, mod, env, modenv;
 
@@ -162,13 +169,20 @@ s.waitForBoot({
 
 	~note = {
 		|i|
+		var vel, pitch, rep, dur;
 		j = i[1].asString;
+
+		vel 	= ~amp.(i);
+		pitch 	= ~pitch.(i);
+		rep		= ~repeat.(i);
+		dur		= ~dur.(i);
+
 		case
-		{ j == ~qdict[\rest] .asString }			{ ~rest.value(i)      }
-		{ j == ~qdict[\sperc].asString }			{ ~percShort.value(i) }
-		{ j == ~qdict[\lperc].asString }			{ ~percShort.value(i) }
-		{ j == ~qdict[\sptch].asString }			{ ~percShort.value(i) }
-		{ j == ~qdict[\lptch].asString }			{ ~percShort.value(i) }
+		{ j == ~qdict[\rest] .asString }			{ ~rest.value()						}
+		{ j == ~qdict[\sperc].asString }			{ ~percShort.value(vel, pitch, rep) }
+		{ j == ~qdict[\lperc].asString }			{ ~percShort.value(vel, pitch, rep) }
+		{ j == ~qdict[\sptch].asString }			{ ~percShort.value(vel, pitch, rep) }
+		{ j == ~qdict[\lptch].asString }			{ ~percShort.value(vel, pitch, rep) }
 		{ Error("Note: Unexpected 2nd character: % in %".format(j, i)).throw; }
 	};
 
@@ -187,8 +201,9 @@ s.waitForBoot({
 	// Every 8 counts, change tone set and env.
 	~count = {
 		~scount = ~scount + 1;
+		~scount.postln;
 		if (
-			~scount > 8,
+			~scount >= ~maxcnt,
 			{
 				~change.value();
 				~scount = 0;
@@ -209,6 +224,8 @@ s.waitForBoot({
 			{ ~env = ~env2 },
 			{ ~env = ~env1 }
 		);
+
+		Pdefn(\set, ~set);
 	};
 
 	~repeat = {
@@ -219,7 +236,7 @@ s.waitForBoot({
 	~amp = {
 		|i|
 		a = "".catList(i[d[\vel]]).asInteger;
-		a.linlin(0, 99, 0, 0.8)
+		a.linlin(0, 99, 0, 0.3)
 	};
 
 	~pitch = {
@@ -241,9 +258,9 @@ s.waitForBoot({
 
 	// Control funcs
 	~key = {
-		// ~scale = Scale.modename
-		// change Pdefn
-		Pdefn(\scale, ~scale);
+		~set1 	= 	Array.exprand(100, 50, 10000).sort;
+		~set2 	= 	Array.exprand(100, 50, 10000).sort;
+		~set	= 	~set1;
 	};
 
 
@@ -276,42 +293,67 @@ s.waitForBoot({
 	};
 
 	~percShort = {
-		|i|
-		var deg, repeats, pan, chose;
-		chose = ~set.choose.midicps;
-		repeats = ~repeat.value(i);
+		|vel, pitch, rep|
+		var pan, panmod;
+		pitch = ~set[pitch];
+
+		pan		= rrand(-1.0, 1.0);
+		panmod 	= rrand(0.8, 1.2) * [-1, 1].choose;
+
 		Pbind(
-			\instrument, 	\tone2,
-			\group, 		~srcGrp,
-			\freq, 			Pseq([chose], inf),
-			\amp, 			Pgeom(0.1, 0.9, repeats),
-			\rel, 			0.5,
+			\instrument, 	\pitchShort,
+			\dur,           Pwrand([0.5, 1, 1.5, 2, 2.5], [1, 50, 2, 10, 1].normalizeSum, rep),
+			\freq, 			Pseq([pitch], inf),
+			/*\amp, 			Pfuncn(
+				{
+					vel * rrand(0.9, 0.1);
+					if (
+						vel > 0.1,
+						{ vel = 0.1 }
+					);
+					if (
+						vel < 0.02,
+						{ vel = 0.1 }
+					);
+
+					vel;
+				},
+				rep
+			),*/
+			\amp,           Pgeom(vel, 0.6),
+			\pan,           Pwhite(-1.0, 1.0),
+			/*\pan,           Pfunc(
+				{
+					pan * panmod;
+					if (
+						pan > 1,
+						{ pan = -1 }
+					);
+					if (
+						pan < -1,
+						{ pan = 1 }
+					);
+
+					pan;
+				}
+			).asStream,*/
 			\out, 			0,
 		).play(t);
 	};
 
+	~percLong = {
+		|vel, pitch, dur|
+		pitch = ~set[pitch];
+	};
+
+	~pitchShort = {
+		|vel, pitch, rep|
+		pitch = ~set[pitch];
+	};
+
 	~pitchLong = {
-		|i|
-		var deg, pan, amp, dur, atk, rel;
-		i.postln;
-
-		deg = ~set.choose.midicps;
-		pan = rrand(-1.0, 1.0);
-		amp = ~amp.value(i);
-		dur = ~dur.value(i);
-		atk = dur[0];
-		rel = dur[1];
-
-		Pbind(
-			\instrument, 	\toneLong,
-			\freq, 			deg,
-			\group, 		~srcGrp,
-			\amp, 			amp,
-			\atk, 			atk,
-			\rel, 			rel,
-			\pan, 			pan,
-			\out, 			0,
-		).play(t);
+		|vel, pitch, dur|
+		pitch = ~set[pitch];
 	};
 
 
@@ -347,6 +389,14 @@ x.slice([0, 1]).postln;
 i = [$1, $2, $3, $4];
 y = "".catList(i[(2..3)]).postln;
 y.asInteger.linlin(0, 99, 160, 200).postln;
+)
+
+(
+Pbind(
+	\instrument, \tone2,
+	\freq, Pseq(~set1, inf),
+	\dur, 0.2,
+).play();
 )
 
 play{Limiter.ar(Saw.ar(50, mul: SinOsc.ar(0.2).range(0,1)), 0.001)}
