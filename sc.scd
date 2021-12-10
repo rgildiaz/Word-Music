@@ -29,8 +29,6 @@ c = x.collect({
 	)
 });
 
-// c = ["11505099"];
-
 c.postln;
 "File loaded!".postln;
 
@@ -68,7 +66,6 @@ d 		=	Dictionary.newFrom([
 	\key,	1
 ]);
 
-
 // env arrays represent atk and rel times.
 ~env1	=	[0.01, 0.5];
 ~env2	=	[1, 1];
@@ -100,11 +97,46 @@ d 		=	Dictionary.newFrom([
 
 s.waitForBoot({
 
-	// Groups
-	/*~srcGrp = Group.new();
-	~fxGrp	= Group.new(~srcGrp, \addAfter);*/
-
 	// SynthDefs
+
+	SynthDef.new( \percShort, {
+		arg freq=400, amp=0.5, out=0, rel=0.1, pan=0;
+		var sig, mod, env, modenv;
+
+		env		= EnvGen.ar(Env.perc(0.01, rel));
+		modenv	= EnvGen.ar(Env.perc(0.01, rel*0.8));
+
+		mod		= SinOsc.ar(freq/1.9290329834, mul:0.8).unipolar;
+
+		sig		= PinkNoise.ar(0.8) + SinOsc.ar(freq*mod, mul:0.2);
+		sig		= BPF.ar(sig, freq, rrand(1/6, 1/2));
+		sig		= sig * env * amp;
+
+		sig		= Pan2.ar(sig, pan);
+
+		Out.ar(out, sig);
+	}).add;
+
+	SynthDef.new( \percLong, {
+		arg freq=400, amp=0.5, out=0, rel=0.8, pan=0;
+		var sig, mod, env, modenv;
+
+		env		= EnvGen.ar(Env.perc(0.01, rel));
+		modenv	= EnvGen.ar(Env.perc(0.01, rel*0.8));
+
+		mod		= SinOsc.ar(freq/1.9290329834, mul:0.8).unipolar;
+
+		sig		= PinkNoise.ar(0.9) + SinOsc.ar(freq*mod, mul:0.1);
+		sig		= BPF.ar(sig, freq, rrand(1/3, 1/2));
+		sig		= sig * env * amp;
+
+		sig		= FreeVerb.ar(sig);
+
+		sig		= Pan2.ar(sig, pan);
+
+		Out.ar(out, sig);
+	}).add;
+
 	SynthDef.new( \pitchShort, {
 		arg freq=200, amp=0.5, out=0, rel=0.25, pan=0;
 		var sig, mod, env, modenv;
@@ -122,26 +154,10 @@ s.waitForBoot({
 		Out.ar(0, sig);
 	}).add;
 
-	SynthDef.new(\tone, {
-		arg freq=200, rel=0.1, amp=0.8, pan=0, out=0;
-		var sig, mod, env, modenv;
-		env = EnvGen.ar(Env.perc(~env[0], ~env[1]), doneAction: 2);
-		modenv = EnvGen.ar(Env.perc(~env[0], ~env[1]));
-		mod = Saw.ar(freq, mul: modenv);
-		freq = freq*mod;
-		sig = LPF.ar(
-			SinOsc.ar(freq, mul: 0.7) +
-			LPF.ar(WhiteNoise.ar(0.3), 1000*XLine.ar(1, 0.001, 0.1), modenv) +
-			SinOsc.ar(freq/2, mul:0.2),
-			1000
-		).tanh;
-		sig = Pan2.ar(sig*amp*env, pan);
-		Out.ar(out, sig);
-	}).add;
-
-	SynthDef.new( \toneLong, {
-		arg freq=200, atk=2, rel=2, pan=0, out=0, gate=1, amp=0.2;
+	SynthDef.new( \pitchLong, {
+		arg freq=200, atk=2, rel=2, pan=0, out=0, amp=0.2;
 		var sig, env;
+
 		env = EnvGen.ar(
 			Env.new(
 				[0, 1, 0],
@@ -150,12 +166,13 @@ s.waitForBoot({
 			),
 			doneAction: 2
 		);
-		sig = SinOsc.ar([freq, freq * rrand(0.97, 1.03)]);
+
+		sig = Saw.ar(freq * rrand(0.97, 1.03), 1/20)!20;
+		sig = LPF.ar(sig, LFNoise1.kr(LFNoise1.kr(2).range(0.1, 1)).range(0.5, 5));
 		sig = sig * env * amp;
-		sig = Pan2.ar(
-			Mix.ar(sig),
-			pan
-		);
+
+		Splay.ar(sig, LFNoise1.kr(0.2).range(0.1, 0.3), center: pan.linlin(-1, 1, -0.8, 0.8));
+
 		Out.ar(out, sig);
 	}).add;
 
@@ -178,11 +195,11 @@ s.waitForBoot({
 		dur		= ~dur.(i);
 
 		case
-		{ j == ~qdict[\rest] .asString }			{ ~rest.value()						}
-		{ j == ~qdict[\sperc].asString }			{ ~percShort.value(vel, pitch, rep) }
-		{ j == ~qdict[\lperc].asString }			{ ~percShort.value(vel, pitch, rep) }
-		{ j == ~qdict[\sptch].asString }			{ ~percShort.value(vel, pitch, rep) }
-		{ j == ~qdict[\lptch].asString }			{ ~percShort.value(vel, pitch, rep) }
+		{ j == ~qdict[\rest] .asString }			{ ~rest      .value()				 }
+		{ j == ~qdict[\sperc].asString }			{ ~percShort .value(vel, pitch, rep) }
+		{ j == ~qdict[\lperc].asString }			{ ~percLong  .value(vel, pitch, rep) }
+		{ j == ~qdict[\sptch].asString }			{ ~pitchShort.value(vel, pitch, rep) }
+		{ j == ~qdict[\lptch].asString }			{ ~pitchLong .value(vel, pitch, rep) }
 		{ Error("Note: Unexpected 2nd character: % in %".format(j, i)).throw; }
 	};
 
@@ -236,7 +253,7 @@ s.waitForBoot({
 	~amp = {
 		|i|
 		a = "".catList(i[d[\vel]]).asInteger;
-		a.linlin(0, 99, 0, 0.3)
+		a.linlin(0, 99, 0, 0.8)
 	};
 
 	~pitch = {
@@ -297,63 +314,90 @@ s.waitForBoot({
 		var pan, panmod;
 		pitch = ~set[pitch];
 
-		pan		= rrand(-1.0, 1.0);
-		panmod 	= rrand(0.8, 1.2) * [-1, 1].choose;
-
-		Pbind(
-			\instrument, 	\pitchShort,
-			\dur,           Pwrand([0.5, 1, 1.5, 2, 2.5], [1, 50, 2, 10, 1].normalizeSum, rep),
-			\freq, 			Pseq([pitch], inf),
-			/*\amp, 			Pfuncn(
-				{
-					vel * rrand(0.9, 0.1);
-					if (
-						vel > 0.1,
-						{ vel = 0.1 }
-					);
-					if (
-						vel < 0.02,
-						{ vel = 0.1 }
-					);
-
-					vel;
-				},
-				rep
-			),*/
-			\amp,           Pgeom(vel, 0.6),
-			\pan,           Pwhite(-1.0, 1.0),
-			/*\pan,           Pfunc(
-				{
-					pan * panmod;
-					if (
-						pan > 1,
-						{ pan = -1 }
-					);
-					if (
-						pan < -1,
-						{ pan = 1 }
-					);
-
-					pan;
-				}
-			).asStream,*/
-			\out, 			0,
-		).play(t);
 	};
 
 	~percLong = {
 		|vel, pitch, dur|
 		pitch = ~set[pitch];
+
+
+
+	};
+
+	~percShort = {
+		|vel, pitch, rep|
+		var pan;
+
+		pitch 	= ~set[pitch];
+		pan 	= rrand(-1.0, 1.0);
+		vel		= vel.linlin(0, 0.8, 0, 0.3);
+
+		Pbind([
+			\instrument,	\percShort,
+			\dur,           Pwrand([0.5, 1, 1.5, 2, 2.5], [1, 50, 2, 10, 1].normalizeSum, rep),
+			\freq, 			Pseq([pitch], inf),
+			\amp,           Pgeom(vel, 0.6),
+			\pan,           Pwhite(-1.0, 1.0),
+			\out, 			0,
+		]).play(t);
+
+	};
+
+	~percLong = {
+		|vel, pitch, dur|
+		var pan;
+
+		pitch 	= ~set[pitch]/2;
+		pan 	= rrand(-1.0, 1.0);
+		vel		= vel.linlin(0, 0.8, 0, 0.3);
+		dur		= dur[0].linlin(0, 104, 5, 15);
+
+		Pbind([
+			\instrument,	\percLong,
+			\dur,           Pseq([1], 1),
+			\freq, 			Pseq([pitch], inf),
+			\rel,			dur,
+			\amp,           Pgeom(vel, 0.6),
+			\pan,           Pwhite(-1.0, 1.0),
+			\out, 			0,
+		]).play(t);
 	};
 
 	~pitchShort = {
 		|vel, pitch, rep|
+		var pan, panmod;
 		pitch = ~set[pitch];
+
+		pan		= rrand(-1.0, 1.0);
+		panmod 	= rrand(0.8, 1.2) * [-1, 1].choose;
+
+		vel		= vel.linlin(0, 0.8, 0, 0.3);
+
+		Pbind(
+			\instrument, 	\pitchShort,
+			\dur,           Pwrand([0.5, 1, 1.5, 2, 2.5], [1, 50, 2, 10, 1].normalizeSum, rep),
+			\freq, 			Pseq([pitch], inf),
+			\amp,           Pgeom(vel, 0.6),
+			\pan,           Pwhite(-1.0, 1.0),
+			\out, 			0,
+		).play(t);
 	};
 
 	~pitchLong = {
 		|vel, pitch, dur|
+		var pan;
+
 		pitch = ~set[pitch];
+
+		Pbind([
+			\instrument,	\pitchLong,
+			\dur,			dur[0] + dur[1],
+			\freq,			Pseq([pitch], 1),
+			\amp,			vel,
+			\atk,			dur[0],
+			\rel,			dur[1],
+			\pan,			Pwhite(-1, 1),
+		])
 	};
 
 
@@ -375,31 +419,3 @@ s.waitForBoot({
 }, onFailure: \waitForBoot_FAILED.postln
 );
 )
-
-
-					/////////////////////////
-					//       Testing       //
-					/////////////////////////
-
-(
-x = "1234567890";
-"".catList(x[(0..1)]).postln;
-x.slice([0, 1]).postln;
-
-i = [$1, $2, $3, $4];
-y = "".catList(i[(2..3)]).postln;
-y.asInteger.linlin(0, 99, 160, 200).postln;
-)
-
-(
-Pbind(
-	\instrument, \tone2,
-	\freq, Pseq(~set1, inf),
-	\dur, 0.2,
-).play();
-)
-
-play{Limiter.ar(Saw.ar(50, mul: SinOsc.ar(0.2).range(0,1)), 0.001)}
-
-play{Saw.ar(50, mul: SinOsc.ar(0.1).range(0,1))}
-
