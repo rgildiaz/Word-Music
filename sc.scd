@@ -36,10 +36,9 @@ c.postln;
 		//        Setup        //
 		/////////////////////////
 
-t = TempoClock.new(240/60).permanent_(true);
+t 		= 	TempoClock.new(240/60).permanent_(true);
 
-
-// root pitch.
+// root pitch. (pitch sets are created using fib, so don't set this too high).
 ~root	=	25;
 
 // parse dict
@@ -81,10 +80,16 @@ d 		=	Dictionary.newFrom([
 ~scount =	0;
 
 
-// Buses
+// Busses
 s.newBusAllocators;
-~revBus = Bus.new('audio', numChannels:2);
-~limitBus = Bus.new('audio', numChannels:2);
+~revBus = 	Bus.new('audio', numChannels:2);
+~limBus = 	Bus.new('audio', numChannels:2);
+
+
+
+/////////////////////////////////////////////////////////////////////
+
+
 
 s.waitForBoot({
 
@@ -154,42 +159,6 @@ s.waitForBoot({
 					/////////////////////////
 					//    Parse + Output   //
 					/////////////////////////
-/*
-Parsing Structure:
-Encoding
-    Text is sent to SuperCollider through a space-separated .txt file. Tokens can be either control changes or note events. Each token is created as follows:
-
-            Example:
-                Control:
-                     0         0           00
-                     ^         ^           ^
-                    type  control type   value
-
-                Note:
-                     1         0           00         00          00
-                     ^         ^           ^          ^           ^
-                    type    quality     velocity    pitch      repeats
-
-    Each value is encoded as follows:
-        type                0: Control
-                            1: Note
-
-        Control
-            control type    0: Tempo
-                            1: Key
-            value           range(0,99)
-
-        Note
-            quality         0: Rest
-                            1: Short Perc
-                            2: Long Perc
-                            3: Short Pitch
-                            4: Long Pitch
-            velocity        range(0,99)
-            reverb          range(0,99)
-            pitch           range(0,99)
-*/
-
 
 	~note = {
 		|i|
@@ -211,6 +180,7 @@ Encoding
 		{ Error("Control: Unexpected 2nd character: % in %".format(j, i)).throw; }
 	};
 
+	///////////////////////////////
 
 	// Helper funcs
 
@@ -226,6 +196,7 @@ Encoding
 		);
 	};
 
+	// change.() is called by ~count.() every 8 beats.
 	~change = {
 		if (
 			  ~set == ~set1,
@@ -242,25 +213,31 @@ Encoding
 
 	~repeat = {
 		|i|
-		"".catList(i[(6..7)]).asInteger;
+		"".catList(i[d[\rep]]).asInteger;
 	};
 
-	// read velocity input and scale accordingly
 	~amp = {
 		|i|
-		a = "".catList(i[(2..3)]).asInteger;
+		a = "".catList(i[d[\vel]]).asInteger;
 		a.linlin(0, 99, 0, 0.8)
+	};
+
+	~pitch = {
+		|i|
+		"".catList(i[d[\pitch]]).asInteger;
 	};
 
 	// read dur instead of repeats for long words
 	~dur = {
 		|i|
-		r = "".catList(i[(6..7)]).asInteger;
+		r = "".catList(i[d[\rep]]).asInteger;
 		r = r+5;
 		x = rrand(0, 1);
 		[r*x, r*(1-x)];
 	};
 
+
+	////////////////////////////////////////
 
 	// Control funcs
 	~key = {
@@ -291,10 +268,26 @@ Encoding
 		Array.interpolation(12, temp, val).postln;
 	};
 
+	/////////////////////////////////////////
 
 	// Note funcs
 	~rest = {
 		nil;
+	};
+
+	~percShort = {
+		|i|
+		var deg, repeats, pan, chose;
+		chose = ~set.choose.midicps;
+		repeats = ~repeat.value(i);
+		Pbind(
+			\instrument, 	\tone2,
+			\group, 		~srcGrp,
+			\freq, 			Pseq([chose], inf),
+			\amp, 			Pgeom(0.1, 0.9, repeats),
+			\rel, 			0.5,
+			\out, 			0,
+		).play(t);
 	};
 
 	~pitchLong = {
@@ -310,32 +303,21 @@ Encoding
 		rel = dur[1];
 
 		Pbind(
-			\instrument, \toneLong,
-			\freq, deg,
-			\group, ~srcGrp,
-			\amp, amp,
-			\atk, atk,
-			\rel, rel,
-			\pan, pan,
-			\out, 0,
+			\instrument, 	\toneLong,
+			\freq, 			deg,
+			\group, 		~srcGrp,
+			\amp, 			amp,
+			\atk, 			atk,
+			\rel, 			rel,
+			\pan, 			pan,
+			\out, 			0,
 		).play(t);
 	};
 
-	~percShort = {
-		|i|
-		var deg, repeats, pan, chose;
-		chose = ~set.choose.midicps;
-		repeats = ~repeat.value(i);
-		Pbind(
-			\instrument, \tone2,
-			\group, ~srcGrp,
-			// \addAction, \addToHead,
-			\freq, Pseq([chose], inf),
-			\amp, Pgeom(0.1, 0.9, repeats),
-			\rel, 0.5,
-			\out, 0,
-		).play(t);
-	};
+
+
+/////////////////////////////////////////////////////////////////////////
+
 
 	r = Routine({
 		c.do({

@@ -14,11 +14,10 @@ Words
             Example:
                         W           O            R            D
                         ^           ^            ^            ^
-                     quality    velocity=100  reverb=0     pitch=0
+                     quality    velocity=100  pitch=0    repeats=1
 
     @param quality          Intentionally vague. Letters: generally unpitched. Numbers: generally pitched.
     @param velocity         The velocity of the note. Range=0-35.
-    @param reverb           The reverb mix. Range=0-1.
     @param pitch            The degree in SuperCollider's scale/degree system.
 
     The note is repeated based on the word length. Range=0-inf. Repeats increases with word length (n-letter word = n-3, where n > 2)
