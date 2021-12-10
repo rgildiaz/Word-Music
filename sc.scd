@@ -77,6 +77,7 @@ Pdefn(\env, ~env);
 
 // ~set1 	= 	Array.exprand(100, 50, 10000).sort;
 // ~set2 	= 	Array.exprand(100, 50, 10000).sort;
+
 ~set	= 	~set1;
 Pdefn(\set, ~set);
 
@@ -200,7 +201,7 @@ s.waitForBoot({
 		{ j == ~qdict[\lperc].asString }			{ ~percLong  .value(vel, pitch, dur) }
 		{ j == ~qdict[\sptch].asString }			{ ~pitchShort.value(vel, pitch, rep) }
 		{ j == ~qdict[\lptch].asString }			{ ~pitchLong .value(vel, pitch, dur) }
-		{ Error("Note: Unexpected 2nd character: % in %".format(j, i)).throw; }
+		{ true }									{ Error("Note: Unexpected 2nd character: % in %".format(j, i)).throw; }
 	};
 
 	~ctrl = {
@@ -278,7 +279,7 @@ s.waitForBoot({
 	~key = {
 		"keycalled".postln;
 		~set1	=	Array.fill(100, {(Array.rand(5, 40, 50).floor.collect({|i| [12, 24].collect({|j| j + i})})).flatten.choose;}).flatten.midicps;
-~set2	=	Array.fill(100, {(Array.rand(5, 40, 50).floor.collect({|i| [12, 24].collect({|j| j + i})})).flatten.choose;}).flatten.midicps;
+		~set2	=	Array.fill(100, {(Array.rand(5, 40, 50).floor.collect({|i| [12, 24].collect({|j| j + i})})).flatten.choose;}).flatten.midicps;
 
 		~set	= 	~set1;
 		Pdefn(\set, ~set);
@@ -306,6 +307,7 @@ s.waitForBoot({
 		~tempoChange = Routine.new({
 			Array.interpolation(64, temp, val).do({
 				|i|
+				t.tempo_(i);
 				3.yield;
 		})}
 		).play(t);
@@ -424,3 +426,20 @@ s.waitForBoot({
 }, onFailure: \waitForBoot_FAILED.postln
 );
 )
+
+
+
+
+
+
+
+
+
+
+
+
+([60, 64, 34] +.t [0,12,24]);
+
+
+
+
