@@ -28,6 +28,8 @@ c = x.collect({
 	)
 });
 
+c.put(20, "01");
+
 c.postln;
 "File loaded!".postln;
 
@@ -38,7 +40,7 @@ c.postln;
 
 t 		= 	TempoClock.new(240/60).permanent_(false);
 
-// root pitch. (pitch sets are created using fib, so don't set this too high).
+// root pitch. (defunct)
 ~root	=	25;
 
 // parse dict
@@ -72,8 +74,8 @@ d 		=	Dictionary.newFrom([
 Pdefn(\env, ~env);
 
 // set arrays represent pitches.
-~set1	=	Array.fill(100, {([40, 42, 39, 45, 47].collect({|i| [12, 24].collect({|j| j + i})})).flatten.choose;}).flatten.midicps;
-~set2	=	Array.fill(100, {([42, 45, 40, 49, 50].collect({|i| [12, 24].collect({|j| j + i})})).flatten.choose;}).flatten.midicps;
+~set1	=	Array.fill(100, {([40, 42, 39, 45, 47] +.x [0, 12, 24]).choose;}).midicps;
+~set2	=	Array.fill(100, {([42, 45, 40, 49, 50] +.x [0, 12, 24]).choose;}).midicps;
 
 // ~set1 	= 	Array.exprand(100, 50, 10000).sort;
 // ~set2 	= 	Array.exprand(100, 50, 10000).sort;
@@ -201,14 +203,19 @@ s.waitForBoot({
 		{ j == ~qdict[\lperc].asString }			{ ~percLong  .value(vel, pitch, dur) }
 		{ j == ~qdict[\sptch].asString }			{ ~pitchShort.value(vel, pitch, rep) }
 		{ j == ~qdict[\lptch].asString }			{ ~pitchLong .value(vel, pitch, dur) }
-		{ true }									{ Error("Note: Unexpected 2nd character: % in %".format(j, i)).throw; }
+		{ Error("Note: Unexpected 2nd character: % in %".format(j, i)).throw; }
 	};
 
 	~ctrl = {
 		|i|
+		var val;
+		j = i[1].asString;
+
+		val		= ~ctrlval.(i);
+
 		case
-		{ j == "0" }			{ ~tempo.value(i) }
-		{ j == "1" }			{ ~key.value(i)   }
+		{ j == "0" }			{ ~tempo.value(val) }
+		{ j == "1" }			{ ~key.value(val)   }
 		{ Error("Control: Unexpected 2nd character: % in %".format(j, i)).throw; }
 	};
 
@@ -272,14 +279,22 @@ s.waitForBoot({
 		[r*x, r*(1-x)];
 	};
 
+	// range(0,99)
+	~ctrlval = {
+		|i|
+		"".catList(i[(2..3)]).asInteger;
+	};
+
 
 	////////////////////////////////////////
 
 	// Control funcs
 	~key = {
+		|i|
 		"keycalled".postln;
-		~set1	=	Array.fill(100, {(Array.rand(5, 40, 50).floor.collect({|i| [12, 24].collect({|j| j + i})})).flatten.choose;}).flatten.midicps;
-		~set2	=	Array.fill(100, {(Array.rand(5, 40, 50).floor.collect({|i| [12, 24].collect({|j| j + i})})).flatten.choose;}).flatten.midicps;
+
+		~set1	=	Array.fill(100, {(Array.rand(5, 40, 50).floor +.x [0, 12, 24]).choose;}).midicps;
+		~set2	=	Array.fill(100, {(Array.rand(5, 40, 50).floor +.x [0, 12, 24]).choose;}).midicps;
 
 		~set	= 	~set1;
 		Pdefn(\set, ~set);
@@ -301,7 +316,8 @@ s.waitForBoot({
 		minTempo = 200/60;
 		maxTempo = 340/60;
 		temp = t.tempo;
-		val = "".catList(i[(2..3)]).asInteger.linlin(0, 99, minTempo, maxTempo);
+
+		val = i.linlin(0, 99, minTempo, maxTempo);
 
 		// Should overwrite if two tempo changes in a row since this is named
 		~tempoChange = Routine.new({
@@ -326,7 +342,7 @@ s.waitForBoot({
 
 		pitch 	= Pdefn(\set).asStream.value()[pitch];
 		pan 	= rrand(-1.0, 1.0);
-		vel		= vel.linlin(0, 0.8, 0, 0.9);
+		vel		= vel.linlin(0, 0.8, 0, 1);
 
 		Pbind(
 			\instrument,	\percShort,
@@ -345,7 +361,7 @@ s.waitForBoot({
 
 		pitch 	= Pdefn(\set).asStream.value()[pitch];
 		pan 	= rrand(-1.0, 1.0);
-		vel		= vel.linlin(0, 0.8, 0, 0.5);
+		vel		= vel.linlin(0, 0.8, 0, 1);
 		dur		= dur[0].linlin(0, 104, 5, 15);
 
 		Pbind(
@@ -395,7 +411,7 @@ s.waitForBoot({
 			\amp,			vel,
 			\atk,			dur[0],
 			\rel,			dur[1],
-			\pan,			Pwhite(-1, 1),
+			\pan,			Pwhite(-1.0, 1.0),
 		).play(t)
 	};
 
@@ -426,20 +442,3 @@ s.waitForBoot({
 }, onFailure: \waitForBoot_FAILED.postln
 );
 )
-
-
-
-
-
-
-
-
-
-
-
-
-([60, 64, 34] +.t [0,12,24]);
-
-
-
-
