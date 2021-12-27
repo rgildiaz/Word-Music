@@ -28,8 +28,6 @@ c = x.collect({
 	)
 });
 
-c.put(20, "01");
-
 c.postln;
 "File loaded!".postln;
 
@@ -92,7 +90,6 @@ Pdefn(\set, ~set);
 
 
 /////////////////////////////////////////////////////////////////////
-
 
 
 s.waitForBoot({
