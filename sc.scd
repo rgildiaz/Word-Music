@@ -8,7 +8,7 @@ s.quit;
 					/////////////////////////
 
 ~path 	=	PathName(thisProcess.nowExecutingPath).parentPath;
-~in 	=	~path ++ "alg_out/out.txt";
+~in 		=	~path ++ "alg_out/out.txt";
 ~in.postln;
 
 // Check if path to file is correct
