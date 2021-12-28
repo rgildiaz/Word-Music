@@ -39,7 +39,7 @@ c.postln;
 t 		= 	TempoClock.new(240/60).permanent_(false);
 
 // root pitch. (defunct)
-~root	=	25;
+~root		=	25;
 
 // parse dict
 d 		=	Dictionary.newFrom([
@@ -47,7 +47,7 @@ d 		=	Dictionary.newFrom([
 	\qual,	1,
 	\vel, 	(2..3),
 	\pitch,	(4..5),
-	\rep,	(6..7)
+	\rep,		(6..7)
 ]);
 
 // qual dict
@@ -55,14 +55,14 @@ d 		=	Dictionary.newFrom([
 	\rest,	0,
 	\sperc,	3,
 	\lperc,	1,
-	\sptch, 2,
-	\lptch, 4
+	\sptch, 	2,
+	\lptch, 	4
 ]);
 
 // control dict
 ~cdict	=	Dictionary.newFrom([
 	\tempo,	0,
-	\key,	1
+	\key,		1
 ]);
 
 // env arrays represent atk and rel times.
@@ -436,6 +436,6 @@ s.waitForBoot({
 
 	}).play(t);
 
-}, onFailure: \waitForBoot_FAILED.postln
+}, onFailure: {\waitForBoot_FAILED.postln}
 );
 )
